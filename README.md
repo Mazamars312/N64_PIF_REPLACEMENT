@@ -40,7 +40,7 @@
 	AND			Areg 		Breg 	WBreg
 	OR			Areg 		Breg 	WBreg
 	XOR			Areg 		Breg 	WBreg
-	MOV			Areg 		0 	  	WBreg
+	MOV			Areg 		0 	WBreg
 	BEQ			Areg 		Breg 	if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
 	BNQ			Areg 		Breg 	if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
 	JAR			Areg		Breg	0		The Areg will be the high address and the B reg will be the low address for the jump
@@ -54,16 +54,16 @@
 	ADDI		Areg 		immidiate value [7:0]
 	SUBI		Areg 		immidiate value [7:0]
 	ANDI		Areg 		immidiate value [7:0]
-	ORI			Areg 		immidiate value [7:0]
+	ORI		Areg 		immidiate value [7:0]
 	XORI		Areg 		immidiate value [7:0]
 	SLLI		Areg 		Shift[3:0]
 	SRAI		Areg		Shift[3:0]
 	SRUI		Areg		Shift[3:0]
-	BFZ			Areg		if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
-	J			Jump to address[10:0]
-	LB			Areg 		RAM address [7:0]
-	SB			Areg 		RAM address [7:0]
-	LI			Areg 		immidiate value [7:0]
+	BFZ		Areg		if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
+	J		Jump to address[10:0]
+	LB		Areg 		RAM address [7:0]
+	SB		Areg 		RAM address [7:0]
+	LI		Areg 		immidiate value [7:0]
 	
 	Memory map
 	
