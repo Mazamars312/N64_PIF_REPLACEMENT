@@ -1,7 +1,7 @@
 # N64_PIF_REPLACEMENT
 
 
-	This is the start of the pif mips controller rom on the instruction side
+	This is the start of the pif mips controller in Verilog
 
 	This CPU will have a 16 Bit instruction rom and only a 8 bit data pathway
 	
