@@ -32,7 +32,7 @@
 
 	OPS:
 	
-#reg to reg ops
+	reg to reg ops
 	op[15:11] 	A[10:8] 	B[7:5] 	WB[4:2]
 	
 	ADD			Areg 		Breg 	WBreg
@@ -45,7 +45,7 @@
 	BNQ			Areg 		Breg 	if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
 	JAR			Areg		Breg	0		The Areg will be the high address and the B reg will be the low address for the jump
 
-#reg to immediate ops
+	reg to immediate ops
 	
 	These call the Areg and then the ALU uses the immi value with it. This is then writen back to the Areg
 	
@@ -65,7 +65,7 @@
 	SB			Areg 		RAM address [7:0]
 	LI			Areg 		immidiate value [7:0]
 	
-#Memory map
+	Memory map
 	
 	0x00 - 0x3F		PIF Ram
 	0x40 - 0x7F		Scrach Ram
@@ -77,7 +77,7 @@
 	
 	
 	
-#Controller interface
+	Controller interface
 	
 		A0 - 8 bit FIFO Write to controller  (upto 33 commands can be written)
 		A1 - 8 bit FIFO Read from Controller (upto 36 commands can be read)
@@ -88,7 +88,7 @@
 		A5 - Command - bit 7 = 0 , bit 6 = 0 , bit 5 = FIFO write empty, bit 4 = FIFO read empty, bit 3 - Controller port 4 to process, 
 					bit 2 - Controller port 3 to process, bit 1 - Controller port 2 to process, bit 0 - Controller port 1 to process
 				
-#Epprom Interface
+	Epprom Interface
 	
 		B0 - 8 bit FIFO Write to controller  (upto 33 commands can be written)
 		B1 - 8 bit FIFO Read from Controller (upto 36 commands can be read)
@@ -97,7 +97,7 @@
 		B4 - Status - bit 7 = Waiting , bit 6 = Ready , bit 5 = FIFO Write Full, bit 4 = FIFO Read Full, bit 0 - Epprom is being accessed
 		B5 - Command - bit 7 = 0 , bit 6 = 0 , bit 5 = FIFO write empty, bit 4 = FIFO read empty, bit 0 - Epprom to process
 	
-#N64 Interations
+	N64 Interations
 	
 		C0 - If a 0xFF is writen here the NMI on the N64 will become active, if 0x00 then NMI is deactive
 		C1 - This is a read reg only for the reset button 0x00 is off, and 0xFF is on. so the main loop needs to check this all the time to reboot the N64
