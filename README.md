@@ -1,7 +1,7 @@
 # N64_PIF_REPLACEMENT
 
 
-	This is the start of the pif mips controller in Verilog
+	This is the start of the pif mips controller rom on the instruction side
 
 	This CPU will have a 16 Bit instruction rom and only a 8 bit data pathway
 	
@@ -40,10 +40,12 @@
 	AND			Areg 		Breg 	WBreg
 	OR			Areg 		Breg 	WBreg
 	XOR			Areg 		Breg 	WBreg
-	MOV			Areg 		0 	WBreg
+	MUL			Areg		Breg	WBreg
+	MOV			Areg 		0 	  	WBreg
 	BEQ			Areg 		Breg 	if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
 	BNQ			Areg 		Breg 	if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
 	JAR			Areg		Breg	0		The Areg will be the high address and the B reg will be the low address for the jump
+	
 
 	reg to immediate ops
 	
@@ -54,16 +56,17 @@
 	ADDI		Areg 		immidiate value [7:0]
 	SUBI		Areg 		immidiate value [7:0]
 	ANDI		Areg 		immidiate value [7:0]
-	ORI		Areg 		immidiate value [7:0]
+	ORI			Areg 		immidiate value [7:0]
 	XORI		Areg 		immidiate value [7:0]
+	MUL			Areg		immidiate value [3:0]
 	SLLI		Areg 		Shift[3:0]
 	SRAI		Areg		Shift[3:0]
 	SRUI		Areg		Shift[3:0]
-	BFZ		Areg		if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
-	J		Jump to address[10:0]
-	LB		Areg 		RAM address [7:0]
-	SB		Areg 		RAM address [7:0]
-	LI		Areg 		immidiate value [7:0]
+	BFZ			Areg		if [4] = 1 then branch address = (Special S0 reg , offset[3:0]) else (8x offset[3], offset [3:0]) So branches are signed
+	J			Jump to address[10:0]
+	LB			Areg 		RAM address [7:0]
+	SB			Areg 		RAM address [7:0]
+	LI			Areg 		immidiate value [7:0]
 	
 	Memory map
 	
@@ -73,7 +76,7 @@
 	0xA0 - 0xAF		Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller 
 	0xB0 - 0xBF		EPPROM Interface
 	0xC0 - 0xCF		N64 interface
-	0xD0 - 0xFF		Un-reserved - Will look at a RTC interface.
+	0xD0 - 0xFF		Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
 	
 	
 	
@@ -88,7 +91,7 @@
 		A5 - Command - bit 7 = 0 , bit 6 = 0 , bit 5 = FIFO write empty, bit 4 = FIFO read empty, bit 3 - Controller port 4 to process, 
 					bit 2 - Controller port 3 to process, bit 1 - Controller port 2 to process, bit 0 - Controller port 1 to process
 				
-	Epprom Interface
+	Epprom
 	
 		B0 - 8 bit FIFO Write to controller  (upto 33 commands can be written)
 		B1 - 8 bit FIFO Read from Controller (upto 36 commands can be read)
