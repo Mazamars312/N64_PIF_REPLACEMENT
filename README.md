@@ -3,7 +3,7 @@
 
 	This is the start of the pif mips controller rom on the instruction side
 
-	This CPU will have a 16 Bit instruction rom and only a 8 bit data pathway
+	This CPU will have a 32 Bit instruction rom and only a 8 bit data pathway
 	
 	We have the following 30 commands (2 are Null commands as we will have 
 	
@@ -33,7 +33,7 @@
 	OPS:
 	
 	reg to reg ops
-	op[15:11] 	A[10:8] 	B[7:5] 	WB[4:2]
+	op	A	B 	WB
 	
 	ADD			Areg 		Breg 	WBreg
 	SUB			Areg 		Breg 	WBreg
@@ -51,7 +51,7 @@
 	
 	These call the Areg and then the ALU uses the immi value with it. This is then writen back to the Areg
 	
-	op[15:11] 	A[10:8] 	Imm[7:0]
+	op[	A	Imm
 	
 	ADDI		Areg 		immidiate value [7:0]
 	SUBI		Areg 		immidiate value [7:0]
