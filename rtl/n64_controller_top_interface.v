@@ -87,7 +87,7 @@ localparam HUNDRED_MS = 32'd400000;
 reg [7:0]   state=IDLE_FSM;
 reg [31:0]  counter_delay =32'd0;
 reg [31:0]  counter_delay_pulses =32'd0;
-reg [2:0]   counter_polling =4'd0;
+reg [8:0]   counter_polling =7'd0;
 reg [5:0]   counting_data =6'd0;
 //=9'b110000000;
 reg [33:0]  buffer_buttons=34'd0;
@@ -265,7 +265,7 @@ always @(posedge clk or negedge reset_l) begin
             joy1_enable <= 'b0;
         end
         if (~processing) ready <= 'b1;
-        if (state[6]) processing <= 'b0; else processing <= 'b1;
+        if (state == IDLE_FSM) processing <= 'b0; else processing <= 'b1;
     end
 end
 
@@ -314,7 +314,7 @@ always @* begin
         end
         8'h03 : begin
             counter_receive <= 6'd0;
-            counter_send <= 6'd33;
+            counter_send <= 6'd32;
             counter_command <= 2'd3;
             address_send <= 1;
             read_write <= 0;
@@ -332,11 +332,11 @@ end
 
 
 //assign data = oe ? data_out: 1'bz;
-// Joystick output enabling code
-assign joy1 = joy1_enable ? data_out: 1'bz;
-assign joy2 = joy2_enable ? data_out: 1'bz;
-assign joy3 = joy3_enable ? data_out: 1'bz;
-assign joy4 = joy4_enable ? data_out: 1'bz;
+// Joystick output enabling code. we want the output to always begin driven high unless we want to use that controller
+assign joy1 = joy1_enable ? (oe ? data_out : 1'bz) : 1'b1;
+assign joy2 = joy2_enable ? (oe ? data_out : 1'bz) : 1'b1;
+assign joy3 = joy3_enable ? (oe ? data_out : 1'bz) : 1'b1;
+assign joy4 = joy4_enable ? (oe ? data_out : 1'bz) : 1'b1;
  
 always@(posedge clk)
 begin
@@ -357,7 +357,7 @@ end
 
 reg [2:0] FSM_Main, FSM_Main_c;
 
-reg [2:0] counter_command_count, counter_command_count_c;
+reg [3:0] counter_command_count, counter_command_count_c;
 reg [5:0] counter_receive_count, counter_receive_count_c;
 reg [5:0] counter_send_count, counter_send_count_c;
 reg [1:0] counter_send_address_count, counter_send_address_count_c;
@@ -403,23 +403,28 @@ end
 always @* begin
     case (FSM_Main)
         sendcommand : begin
-            if (counter_command_count >= 2'd1) FSM_Main_c <= sendcommand;
-            else if (address_send == 1) FSM_Main_c <= sendaddress;
-            else FSM_Main_c <= stopbit;
+            if (counter_command_count_c == 4'd0 && (state == POLL_FSM)) begin
+                if (address_send == 1) FSM_Main_c <= sendaddress;
+                else FSM_Main_c <= stopbit;
+            end
+            else FSM_Main_c <= sendcommand;
         end
         stopbit : begin
-            if (counter_receive == 6'd0) FSM_Main_c <= idle_con;
-            else FSM_Main_c <= receivedata;
+            if (state == POLL_FSM) FSM_Main_c <= stopbit;
+            else begin
+                if (counter_receive == 6'd0) FSM_Main_c <= idle_con;
+                else FSM_Main_c <= receivedata;
+            end
         end
         sendaddress : begin
-            if (counter_send_address_count == 6'd1) begin 
+            if (counter_send_address_count_c == 6'd0 && (state == POLL_FSM)) begin 
                 if (read_write == 1) FSM_Main_c <= stopbit; 
                 else FSM_Main_c <= senddata; 
             end
             else FSM_Main_c <= sendaddress;
         end
         senddata : begin
-            if (counter_send_count == 6'd1) FSM_Main_c <= stopbit;
+            if (counter_send_count_c == 6'd1 && (state == POLL_FSM)) FSM_Main_c <= stopbit;
             else FSM_Main_c <= senddata;
         end
         receivedata : begin
@@ -457,7 +462,7 @@ always @* begin
            sending_data_c <= fifo_buffer_write_controller;
         end
         default : begin
-           sending_data_c <= 'b0;
+           sending_data_c <= 'b1;
         end
     endcase
 end
@@ -470,8 +475,9 @@ end
 
 always @* begin
     case (FSM_Main)
-        sendcommand : begin
-           start <= 1'b1;
+        idle_con : begin
+           if (|{joy4_enable, joy3_enable, joy2_enable, joy1_enable} && ~processing) start <= 1'b1;
+           else start <= 1'b0;
         end
         default : begin
            start <= 1'b0;
@@ -522,6 +528,13 @@ always @* begin
     endcase
 end
 
+
+/***********************************************************
+
+    read data fifo controller for reading
+
+***********************************************************/
+
 always @* begin
     case (FSM_Main)
         receivedata : begin
@@ -530,6 +543,43 @@ always @* begin
         end
         default : begin
            fifo_read_data_next_c <= 'b0;
+        end
+    endcase
+end
+
+
+/***********************************************************
+
+    command counter
+
+***********************************************************/
+
+always @* begin
+    case (FSM_Main)
+        sendcommand : begin
+           if (state == POLL_FSM)counter_command_count_c <= counter_command_count - 4'd1;
+           else counter_command_count_c <= counter_command_count;
+        end
+        default : begin
+           counter_command_count_c <= 8'd8;
+        end
+    endcase
+end
+
+/***********************************************************
+
+    address counter
+
+***********************************************************/
+
+always @* begin
+    case (FSM_Main)
+        sendaddress : begin
+           counter_send_address_count_c <= counter_send_address_count - 4'd1;
+        end
+
+        default : begin
+           counter_send_address_count_c <= 4'd16;
         end
     endcase
 end
@@ -587,15 +637,18 @@ end
 // it updates the counter polling to the higher number and then each 8 counts it gets updates the FIFO 
 // we might make a reg that can be accessed by the main FSM
 
-always@(posedge data_out, posedge finish)
+wire idle_change = (state==IDLE_FSM);
+wire [8:0] send_counter_state = address_send ? 9'd23 + counter_send : 9'd7;
+
+always@(posedge data_out or posedge start)
 begin
-	if(finish)
+	if(start)
 	begin
-		counter_polling[3:0]<=4'd0;
+		counter_polling <= send_counter_state;
 	end
 	else
 	begin
-		counter_polling[3:0]<=counter_polling[3:0]+1'b1;
+		counter_polling <= counter_polling - 9'b1;
 	end
 end
 
@@ -616,7 +669,7 @@ begin
 	POLL_FSM	:begin	 
 					counter_delay[31:0]<=0;// otherwise go to get the data
 					state[7:0]<=GET_FSM;
-					if(counter_polling[3:0]<=4'd8)
+					if(counter_polling >= 9'd0 || FSM_Main == stopbit)
 					begin
 						counter_delay[31:0]<=ONEuSECONDS;//send a 1 starting from 1 us
 						state[7:0]<=SEND1_FSM1;
@@ -711,7 +764,7 @@ n64_controller_fifo_read(
     .clk            (clk),
     .rst_n          (reset_l),
     // for the CPU
-    .sclr           (~empty_read_fifo),
+    .sclr           (empty_read_fifo),
     .rdreq          (fifo_buffer_read_read),   //input
     .empty          (empty_read_fifo_status),
     .q              (fifo_buffer_read_read_data),
@@ -728,7 +781,7 @@ n64_controller_fifo_write(
     .clk            (clk),
     .rst_n          (reset_l),
      // for the CPU   
-    .sclr           (~empty_write_fifo),
+    .sclr           (empty_write_fifo),
     .wrreq          (fifo_buffer_write_write),
     .empty          (empty_write_fifo_status),
     .data           (fifo_buffer_write_write_data),
