@@ -76,6 +76,7 @@ localparam SEND0_FSM1	 =	8'b0___________0________1___0_0010;
 localparam SEND0_FSM2	 =	8'b0___________0________1___0_0011;
 localparam SEND1_FSM1	 =	8'b0___________0________1___0_0100;
 localparam SEND1_FSM2	 =	8'b0___________0________1___0_0101;
+localparam SENT_COMMAND	 =	8'b0___________0________1___0_0111;
 localparam GET_FSM 		 =	8'b1___________0________0___0_0110;
 localparam FINISH_FSM 	 =	8'b0___________1________0___0_1110;
 
@@ -271,9 +272,9 @@ end
 
 // this works in bytes so make sure if you are doing 32bits that you have this as 4 bytes for counting. This is also the real number as well.
 
-reg [5:0] counter_receive;
-reg [5:0] counter_send;
-reg [1:0] counter_command;
+reg [8:0] counter_receive;
+reg [8:0] counter_send;
+reg [3:0] counter_command;
 reg       address_send;
 reg       read_write; //1 == read;
 
@@ -292,37 +293,37 @@ reg       read_write; //1 == read;
 always @* begin
     case (cmd_to_controller)
         8'h00 : begin
-            counter_receive <= 6'd3;
-            counter_send <= 6'd0;
-            counter_command <= 2'd1;
+            counter_receive <= 9'd24;
+            counter_send <= 9'd0;
+            counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
         end
         8'h01 : begin
-            counter_receive <= 6'd4;
-            counter_send <= 6'd0;
-            counter_command <= 2'd1;
+            counter_receive <= 9'd32;
+            counter_send <= 9'd0;
+            counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
         end
         8'h02 : begin
-            counter_receive <= 6'd33;
-            counter_send <= 6'd0;
-            counter_command <= 2'd3;
+            counter_receive <= 9'd264;
+            counter_send <= 9'd0;
+            counter_command <= 4'd8;
             address_send <= 1;
             read_write <= 1;
         end
         8'h03 : begin
-            counter_receive <= 6'd0;
-            counter_send <= 6'd32;
-            counter_command <= 2'd3;
+            counter_receive <= 9'd0;
+            counter_send <= 9'd264;
+            counter_command <= 4'd8;
             address_send <= 1;
             read_write <= 0;
         end
         8'hff : begin
-            counter_receive <= 6'd0;
-            counter_send <= 6'd0;
-            counter_command <= 2'd1;
+            counter_receive <= 9'd0;
+            counter_send <= 9'd0;
+            counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
         end
@@ -358,12 +359,13 @@ end
 reg [2:0] FSM_Main, FSM_Main_c;
 
 reg [3:0] counter_command_count, counter_command_count_c;
-reg [5:0] counter_receive_count, counter_receive_count_c;
-reg [5:0] counter_send_count, counter_send_count_c;
-reg [1:0] counter_send_address_count, counter_send_address_count_c;
+reg [8:0] counter_receive_count, counter_receive_count_c;
+reg [8:0] counter_send_count, counter_send_count_c;
+reg [3:0] counter_send_address_count, counter_send_address_count_c;
 reg       fifo_write_next, fifo_write_next_c;
 reg       fifo_read_next, fifo_read_next_c;
 reg       fifo_read_data_next, fifo_read_data_next_c;
+reg       controller_active, controller_active_c;
 
 reg [7:0]  sending_data, sending_data_c;
 
@@ -386,6 +388,7 @@ always @(posedge clk or negedge reset_l) begin
         fifo_write_next <= 'b0;
         fifo_read_next <= 'b0;
         fifo_read_data_next <= 'b0;
+        controller_active <= 'b0;
     end
     else begin
         FSM_Main <= FSM_Main_c;
@@ -397,38 +400,39 @@ always @(posedge clk or negedge reset_l) begin
         fifo_write_next <= fifo_write_next_c;
         fifo_read_next <= fifo_read_next_c;
         fifo_read_data_next <= fifo_read_data_next_c;
+        controller_active <= controller_active_c;
     end
 end
 
 always @* begin
     case (FSM_Main)
         sendcommand : begin
-            if (counter_command_count_c == 4'd0 && (state == POLL_FSM)) begin
+            if (counter_command_count == 4'h1 && (state == SENT_COMMAND)) begin
                 if (address_send == 1) FSM_Main_c <= sendaddress;
                 else FSM_Main_c <= stopbit;
             end
             else FSM_Main_c <= sendcommand;
         end
         stopbit : begin
-            if (state == POLL_FSM) FSM_Main_c <= stopbit;
+            if (state != SEND1_FSM2) FSM_Main_c <= stopbit; //&& counter_polling == 'b0
             else begin
                 if (counter_receive == 6'd0) FSM_Main_c <= idle_con;
                 else FSM_Main_c <= receivedata;
             end
         end
         sendaddress : begin
-            if (counter_send_address_count_c == 6'd0 && (state == POLL_FSM)) begin 
+            if (counter_send_address_count == 6'd0 && (state == SENT_COMMAND)) begin 
                 if (read_write == 1) FSM_Main_c <= stopbit; 
                 else FSM_Main_c <= senddata; 
             end
             else FSM_Main_c <= sendaddress;
         end
         senddata : begin
-            if (counter_send_count_c == 6'd1 && (state == POLL_FSM)) FSM_Main_c <= stopbit;
+            if (counter_send_count == 6'd0 && (state == SENT_COMMAND)) FSM_Main_c <= stopbit;
             else FSM_Main_c <= senddata;
         end
         receivedata : begin
-            if (counter_receive_count == 6'd1) FSM_Main_c <= idle_con;
+            if (counter_receive_count == 6'd0) FSM_Main_c <= idle_con;
             else FSM_Main_c <= receivedata;
         end
         default : begin
@@ -447,7 +451,7 @@ end
 
 
 always @* begin
-    case (FSM_Main)
+    case (FSM_Main_c)
         sendcommand : begin
             sending_data_c <= cmd_to_controller;
         end
@@ -463,6 +467,31 @@ always @* begin
         end
         default : begin
            sending_data_c <= 'b1;
+        end
+    endcase
+end
+
+/***********************************************************
+
+    This is the to keep the controller fms running for sending data
+
+***********************************************************/
+
+always @* begin
+    case (FSM_Main)
+        idle_con : begin
+          if (start) controller_active_c <= 1'b1;
+          else controller_active_c <= 1'b0;
+        end
+        stopbit : begin
+           if (state == SEND1_FSM2) controller_active_c <= 1'b1;
+           else controller_active_c <= 1'b1;
+        end
+        receivedata : begin
+           controller_active_c <= 1'b0;
+        end
+        default : begin
+           controller_active_c <= 1'b1;
         end
     endcase
 end
@@ -557,11 +586,29 @@ end
 always @* begin
     case (FSM_Main)
         sendcommand : begin
-           if (state == POLL_FSM)counter_command_count_c <= counter_command_count - 4'd1;
+           if (state == SENT_COMMAND)counter_command_count_c <= counter_command_count - 4'd1;
            else counter_command_count_c <= counter_command_count;
         end
         default : begin
-           counter_command_count_c <= 8'd8;
+           counter_command_count_c <= counter_command;
+        end
+    endcase
+end
+
+/***********************************************************
+
+    Send Data counter
+
+***********************************************************/
+
+always @* begin
+    case (FSM_Main)
+        senddata : begin
+           if (state == SENT_COMMAND)counter_send_count_c <= counter_send_count - 4'd1;
+           else counter_send_count_c <= counter_send_count;
+        end
+        default : begin
+           counter_send_count_c <= counter_send - 'd1;
         end
     endcase
 end
@@ -575,11 +622,31 @@ end
 always @* begin
     case (FSM_Main)
         sendaddress : begin
-           counter_send_address_count_c <= counter_send_address_count - 4'd1;
+           if (state == SENT_COMMAND )counter_send_address_count_c <= counter_send_address_count - 4'd1;
+           else counter_send_address_count_c <= counter_send_address_count;
         end
 
         default : begin
-           counter_send_address_count_c <= 4'd16;
+           counter_send_address_count_c <= 4'hf;
+        end
+    endcase
+end
+
+/***********************************************************
+
+    receiving counter counter
+
+***********************************************************/
+
+always @* begin
+    case (FSM_Main)
+        receivedata : begin
+           if (state == SENT_COMMAND )counter_receive_count_c <= counter_receive_count - 4'd1;
+           else counter_receive_count_c <= counter_receive_count;
+        end
+
+        default : begin
+           counter_receive_count_c <= counter_receive;
         end
     endcase
 end
@@ -637,10 +704,10 @@ end
 // it updates the counter polling to the higher number and then each 8 counts it gets updates the FIFO 
 // we might make a reg that can be accessed by the main FSM
 
-wire idle_change = (state==IDLE_FSM);
+//wire idle_change = (state==IDLE_FSM);
 wire [8:0] send_counter_state = address_send ? 9'd23 + counter_send : 9'd7;
 
-always@(posedge data_out or posedge start)
+always@(negedge data_out or posedge start)
 begin
 	if(start)
 	begin
@@ -648,11 +715,12 @@ begin
 	end
 	else
 	begin
-		counter_polling <= counter_polling - 9'b1;
+		if (counter_polling != 9'd0) counter_polling <= counter_polling - 'd1;
+		else counter_polling <= counter_polling;
 	end
 end
 
-
+wire [3:0] sending_data_location = counter_polling;
 
 
 always@(posedge clk)
@@ -669,11 +737,11 @@ begin
 	POLL_FSM	:begin	 
 					counter_delay[31:0]<=0;// otherwise go to get the data
 					state[7:0]<=GET_FSM;
-					if(counter_polling >= 9'd0 || FSM_Main == stopbit)
+					if(controller_active)
 					begin
 						counter_delay[31:0]<=ONEuSECONDS;//send a 1 starting from 1 us
 						state[7:0]<=SEND1_FSM1;
-						if(sending_data[counter_polling[2:0]]==1'b0)
+						if(sending_data[sending_data_location[2:0]]==1'b0)
 						begin
 							counter_delay[31:0]<=THREEuSECONDS;
 							state[7:0]<=SEND0_FSM1;//send a 0  starting from 3 us
@@ -694,7 +762,7 @@ begin
 					counter_delay[31:0]<=counter_delay[31:0]-1'b1;
 					if(counter_delay[31:0]==32'd0)
 					begin
-						state[7:0]<=POLL_FSM;
+						state[7:0]<=SENT_COMMAND;
 					end
 				 end
 	SEND1_FSM1	:begin
@@ -711,13 +779,19 @@ begin
 					counter_delay[31:0]<=counter_delay[31:0]-1'b1;
 					if(counter_delay[31:0]==32'd0)
 					begin
-						state[7:0]<=POLL_FSM;
+						state[7:0]<=SENT_COMMAND;
 					end
 				 end
+    SENT_COMMAND : begin
+                    state[7:0]<=POLL_FSM;
+					counter_delay[31:0]<='b0;
+					
+					
+                end
 	GET_FSM 	:begin	 
 					state[7:0]<=GET_FSM;
 					counter_delay[31:0]<=HUNDRED_MS;// DELAY AFTER POLLING AND GETTING DATA
-				   if(counter_receive_count >= counter_receive)// wait untilt there are 33 pulses coming from the N64 controller
+				   if(counter_receive_count == 'b0)// wait untilt there are 33 pulses coming from the N64 controller
 					begin
 						state[7:0]<=FINISH_FSM;
 					end

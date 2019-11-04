@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ns/100ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -29,10 +29,10 @@ module controller_test_bench(
 
 //		output reg [33:0]buttons=34'd0,
 //		output reg alive=1'd0,
-		reg joy1_out;
-		reg joy2_out;
-		reg joy3_out;
-		reg joy4_out;
+//		reg joy1_out;
+//		reg joy2_out;
+//		reg joy3_out;
+//		reg joy4_out;
 		
         wire joy1;
 		wire joy2;
@@ -49,7 +49,7 @@ module controller_test_bench(
 		
 		
 		initial begin
-            #1 clk <= 'b0;
+            clk <= 'b0;
             joy_out <= 'b0;
             reset_l <= 'b1;
             address <= 'b0;
@@ -57,143 +57,143 @@ module controller_test_bench(
             write <= 'b0;
             ce <= 'b0;
             
-            #2 reset_l <= 'b0;
+            #4 reset_l <= 'b0;
             
-            #2 reset_l <= 'b1;
+            #4 reset_l <= 'b1;
             
-            #6  address <= 4'b0000;
+            #8  address <= 4'b0000;
                 data_in_bus <= 8'h01; // the command we want to send
                 ce <= 'b1;
                 write <= 'b1;
             // write data to fifo 0
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h01;
                 // write data to fifo 1
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h02;
                 // write data to fifo 2
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h03;
                 // write data to fifo 3
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h04;
                 // write data to fifo 4
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h05;
                 // write data to fifo 5
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h06;
                 // write data to fifo 6
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h07;
                 // write data to fifo 7
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h08;
                 // write data to fifo 8
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h09;
                 // write data to fifo 9
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0A;
                 // write data to fifo 10
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0B;
                 // write data to fifo 11
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0C;
                 // write data to fifo 12
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0D;
                 // write data to fifo 13
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0E;
                 // write data to fifo 14
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h0F;
                 // write data to fifo 15
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h10;
                 // write data to fifo 16
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h11;
                 // write data to fifo 17
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h12;
                 // write data to fifo 18
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h13;
                 // write data to fifo 19
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h14;
                 // write data to fifo 20
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h15;
                 // write data to fifo 21
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h16;
                 // write data to fifo 22
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h17;
                 // write data to fifo 23
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h18;
                 // write data to fifo 24
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h19;
                 // write data to fifo 25
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1A;
                 // write data to fifo 26
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1B;
                 // write data to fifo 27
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1C;
                 // write data to fifo 28
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1D;
                 // write data to fifo 29
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1E;
                 // write data to fifo 30
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h1F;
                 // write data to fifo 31
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h20;
                 // write data to fifo 32
-            #2  address <= 4'b0110;
-                data_in_bus <= 8'h22;
+            #4  address <= 4'b0110;
+                data_in_bus <= 8'h21;
                
                 // high address
                 
-            #2  address <= 4'b0001;
+            #4  address <= 4'b0001;
                 data_in_bus <= 8'h22;
                
                 // Low address
                 
-            #2  address <= 4'b0010;
-                data_in_bus <= 8'h33;
+            #4  address <= 4'b0010;
+                data_in_bus <= 8'h35;
                 
                 // Enable Joy1 controller and start processing the controller
                 
-            #2  address <= 4'b0100;
+            #4  address <= 4'b0100;
                 data_in_bus <= 8'h01;
                 
-            #2  ce <= 'b0;
+            #4  ce <= 'b0;
                 write <= 'b0;
             
             #100 $finish;
         end
 
         always begin
-          #1 clk = ~clk;
+          #2 clk = ~clk;
         end
 		
-		assign joy1 = joy_out ? joy1_out : 'bz;
-		assign joy2 = joy_out ? joy2_out : 'bz;
-		assign joy3 = joy_out ? joy3_out : 'bz;
-		assign joy4 = joy_out ? joy4_out : 'bz;
+//		assign joy1 = joy_out ? joy1_out : 'bz;
+//		assign joy2 = joy_out ? joy2_out : 'bz;
+//		assign joy3 = joy_out ? joy3_out : 'bz;
+//		assign joy4 = joy_out ? joy4_out : 'bz;
 		
 		
 		N64_controller_top N64_controller_top(
@@ -212,6 +212,30 @@ module controller_test_bench(
 		.write        (write),
 		.ce           (ce),
 		.data_out_bus (data_out_bus)
+);
+
+
+N64_controller N64_controller_joy1 
+(
+    .clock (clk),
+    .reset_l (reset_l),
+	.A (1'b0), 
+	.B(1'b0),
+	.R(1'b0), 
+	.L(1'b0), 
+	.Z(1'b0), 
+	.START(1'b0),
+	.yellow_UP(1'b0),
+	.yellow_DOWN(1'b0),
+	.yellow_LEFT(1'b0),
+	.yellow_RIGHT(1'b0),
+	.gray_UP(1'b0),
+	.gray_DOWN(1'b0),
+	.gray_LEFT(1'b0),
+	.gray_RIGHT(1'b0),
+	.joystick_X(8'b0),
+	.joystick_Y(8'b0),
+	.out(joy1)
 );
     
     
