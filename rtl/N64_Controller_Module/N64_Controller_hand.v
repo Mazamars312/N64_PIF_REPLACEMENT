@@ -1,8 +1,44 @@
 `timescale 1ns / 1ps
 
 
+// Real Controller core for the N64 By Murray Aickin
+// Email: Murray.aickin@boomweb.co.nz
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// Bits Description:
+// 				A 			--> buttons[0]
+// 				B 			--> buttons[1]
+// 				Z 			--> buttons[2]
+// 				Start 	--> buttons[3]
+// 				Up 		--> buttons[4]
+// 				Down 		--> buttons[5]
+// 				Left 		--> buttons[6]
+// 				Right		--> buttons[7]
+// 				N/A 		--> buttons[8]
+// 				N/A 		--> buttons[9]
+// 				L 			--> buttons[10]
+// 				R 			--> buttons[11]
+// 				C-UP 		--> buttons[12]
+// 				C-DOWN	--> buttons[13]
+// 				C-Left	--> buttons[14]
+// 				C-Right	--> buttons[15]
+// 				X-Axis 	--> buttons[23:16]
+// 				Y-Axis 	--> buttons[31:24]
 
-module N64_controller 
+/**************************************************************
+
+
+    Commands
+        0x00 - Status of controller
+        0x01 - Read controller buttons
+        0x02 - Read Ram
+        0x03 - Write ram
+        0xff - reset controller
+
+**************************************************************/
+
+
+module N64_controller
 (
     input clock, reset_l,
 	input A, B, R, L, Z, START,
@@ -44,7 +80,7 @@ always @(posedge clock or negedge reset_l) begin
         controller_fsm <= controller_fsm_c;
         get_processing <= get_processing_c;
         command_in <=  command_in_c;
-    end    
+    end
 end
 
 /******************************************************************
@@ -90,13 +126,13 @@ always @* begin
                 8'h02 ,
                 8'h03 : begin
                     controller_fsm_c <= cmd_addressh;
-                end 
+                end
                 8'hff : begin
                     controller_fsm_c <= data_send;
-                end 
+                end
                 default : begin
                     controller_fsm_c <= data_send;
-                end 
+                end
              endcase
             end
             else begin
@@ -156,7 +192,7 @@ localparam FINISH_FSM 	 =	8'b0___________1________0___0_1110;
 localparam THREEuSECONDS = 32'd150;
 localparam ONEuSECONDS = 32'd50;
 localparam HUNDRED_MS = 32'd400000;
-  
+
 
 reg [7:0]state=GET_FSM;
 reg [31:0]counter_delay =32'd0;
@@ -179,10 +215,10 @@ reg start_counter=1'b0;
 
 
 assign out = oe ? data_out: 1'bz;
- 
+
 always@(posedge clock)
 begin
-	data_in<=out; 
+	data_in<=out;
 end
 
 wire sync_data;
@@ -228,7 +264,7 @@ begin
 	end
 end
 
- 
+
 
 always@(posedge clock)
 begin
@@ -270,7 +306,7 @@ end
 always@(posedge clock)
 begin
 	case(state[7:0])
-	IDLE_FSM	:begin	 	
+	IDLE_FSM	:begin
 					counter_delay[31:0]<=0;
 					state[7:0]<=IDLE_FSM;
 					if(~data_in)
@@ -278,7 +314,7 @@ begin
 						state[7:0]<=GET_FSM;
 					end
 				 end
-    GET_FSM 	:begin	 
+    GET_FSM 	:begin
 					state[7:0]<=GET_FSM;
 					counter_delay[31:0]<=HUNDRED_MS;// DELAY AFTER POLLING AND GETTING DATA
 				   if(get_processing && sync_data)// wait untilt there are 33 pulses coming from the N64 controller
@@ -286,7 +322,7 @@ begin
 						state[7:0]<=FINISH_FSM;
 					end
 				 end
-	POLL_FSM	:begin	 
+	POLL_FSM	:begin
 					counter_delay[31:0]<=0;// otherwise go to get the data
 					state[7:0]<=FINISH_FSM;
 					if(counter_polling[3:0]<=4'd8)
@@ -300,7 +336,7 @@ begin
 						end
 					end
 				 end
-	SEND0_FSM1	:begin// send a 0  
+	SEND0_FSM1	:begin// send a 0
 					state[7:0]<=SEND0_FSM1;
 					counter_delay[31:0]<=counter_delay[31:0]-1'b1;
 					if(counter_delay[31:0]==32'd0)
@@ -347,10 +383,10 @@ begin
 					state[7:0]<=IDLE_FSM;
 					counter_delay[31:0]<=32'd0;
 				 end
-	endcase 
+	endcase
 end
 
-    
+
 endmodule
 
 
