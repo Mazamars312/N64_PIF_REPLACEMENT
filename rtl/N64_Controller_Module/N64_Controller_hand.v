@@ -1,44 +1,8 @@
 `timescale 1ns / 1ps
 
 
-// Real Controller core for the N64 By Murray Aickin
-// Email: Murray.aickin@boomweb.co.nz
-// --------------------------------------------------------------------
-// --------------------------------------------------------------------
-// Bits Description:
-// 				A 			--> buttons[0]
-// 				B 			--> buttons[1]
-// 				Z 			--> buttons[2]
-// 				Start 	--> buttons[3]
-// 				Up 		--> buttons[4]
-// 				Down 		--> buttons[5]
-// 				Left 		--> buttons[6]
-// 				Right		--> buttons[7]
-// 				N/A 		--> buttons[8]
-// 				N/A 		--> buttons[9]
-// 				L 			--> buttons[10]
-// 				R 			--> buttons[11]
-// 				C-UP 		--> buttons[12]
-// 				C-DOWN	--> buttons[13]
-// 				C-Left	--> buttons[14]
-// 				C-Right	--> buttons[15]
-// 				X-Axis 	--> buttons[23:16]
-// 				Y-Axis 	--> buttons[31:24]
 
-/**************************************************************
-
-
-    Commands
-        0x00 - Status of controller
-        0x01 - Read controller buttons
-        0x02 - Read Ram
-        0x03 - Write ram
-        0xff - reset controller
-
-**************************************************************/
-
-
-module N64_controller
+module N64_controller 
 (
     input clock, reset_l,
 	input A, B, R, L, Z, START,
@@ -49,7 +13,7 @@ module N64_controller
 );
 wire buttons = 32'h0000_0000;
 
-reg [2:0] controller_fsm, controller_fsm_c;
+reg [3:0] controller_fsm, controller_fsm_c;
 
 reg [7:0] input_buffer;
 
@@ -61,13 +25,15 @@ reg [7:0] command_in, command_in_c;
 
 reg [31:0] cart_mem [2047:0];
 
-localparam cmd_input    =   3'd0;
-localparam stopbitr     =   3'd1;
-localparam cmd_addressl =   3'd2;
-localparam cmd_addressh =   3'd3;
-localparam data_send    =   3'd4;
-localparam data_receive =   3'd5;
-localparam stopbits     =   3'd6;
+localparam idle             =   4'd0;
+localparam stopbitr         =   4'd1;
+localparam cmd_addressl     =   4'd2;
+localparam cmd_addressh     =   4'd3;
+localparam data_send        =   4'd4;
+localparam data_receive     =   4'd5;
+localparam stopbits         =   4'd6;
+localparam command_recive   =   4'd7;
+localparam command_process  =   4'd8;
 
 
 always @(posedge clock or negedge reset_l) begin
@@ -80,7 +46,7 @@ always @(posedge clock or negedge reset_l) begin
         controller_fsm <= controller_fsm_c;
         get_processing <= get_processing_c;
         command_in <=  command_in_c;
-    end
+    end    
 end
 
 /******************************************************************
@@ -93,7 +59,7 @@ end
 always @* begin
     case (controller_fsm)
         stopbitr : begin
-            controller_fsm_c <= cmd_input;
+            controller_fsm_c <= idle;
         end
         cmd_addressl : begin
             if (counter == 7 && sync_data) begin
@@ -115,29 +81,32 @@ always @* begin
             controller_fsm_c <= stopbitr;
         end
         stopbits : begin
-            controller_fsm_c <= cmd_input;
+            controller_fsm_c <= idle;
         end
-        default : begin
-            if (counter == 7 && sync_data) begin
+        command_process : begin
+
              case (input_buffer)
-                8'h00 : begin
-                    controller_fsm_c <= data_send;
+                8'h00
+                8'hff
+                8'h01 : begin
+                    controller_fsm_c <= stopbitr;
                 end
                 8'h02 ,
                 8'h03 : begin
                     controller_fsm_c <= cmd_addressh;
-                end
-                8'hff : begin
-                    controller_fsm_c <= data_send;
-                end
+                end 
                 default : begin
                     controller_fsm_c <= data_send;
-                end
+                end 
              endcase
-            end
-            else begin
-                controller_fsm_c <= cmd_input;
-            end
+        end
+        command_recive : begin
+            if ( ) controller_fsm_c <=  command_process;
+            else controller_fsm_c <= command_recive;
+        end
+        default : begin
+            if ( )controller_fsm_c <=  command_recive;
+            else controller_fsm_c <=  idle
         end
     endcase
 end
@@ -151,7 +120,7 @@ end
 
 always @* begin
     case (controller_fsm)
-        cmd_input : begin
+        command_process : begin
             command_in_c <= input_buffer;
         end
         default : begin
@@ -192,7 +161,7 @@ localparam FINISH_FSM 	 =	8'b0___________1________0___0_1110;
 localparam THREEuSECONDS = 32'd150;
 localparam ONEuSECONDS = 32'd50;
 localparam HUNDRED_MS = 32'd400000;
-
+  
 
 reg [7:0]state=GET_FSM;
 reg [31:0]counter_delay =32'd0;
@@ -215,10 +184,10 @@ reg start_counter=1'b0;
 
 
 assign out = oe ? data_out: 1'bz;
-
+ 
 always@(posedge clock)
 begin
-	data_in<=out;
+	data_in<=out; 
 end
 
 wire sync_data;
@@ -264,7 +233,7 @@ begin
 	end
 end
 
-
+ 
 
 always@(posedge clock)
 begin
@@ -306,7 +275,7 @@ end
 always@(posedge clock)
 begin
 	case(state[7:0])
-	IDLE_FSM	:begin
+	IDLE_FSM	:begin	 	
 					counter_delay[31:0]<=0;
 					state[7:0]<=IDLE_FSM;
 					if(~data_in)
@@ -314,7 +283,7 @@ begin
 						state[7:0]<=GET_FSM;
 					end
 				 end
-    GET_FSM 	:begin
+    GET_FSM 	:begin	 
 					state[7:0]<=GET_FSM;
 					counter_delay[31:0]<=HUNDRED_MS;// DELAY AFTER POLLING AND GETTING DATA
 				   if(get_processing && sync_data)// wait untilt there are 33 pulses coming from the N64 controller
@@ -322,7 +291,7 @@ begin
 						state[7:0]<=FINISH_FSM;
 					end
 				 end
-	POLL_FSM	:begin
+	POLL_FSM	:begin	 
 					counter_delay[31:0]<=0;// otherwise go to get the data
 					state[7:0]<=FINISH_FSM;
 					if(counter_polling[3:0]<=4'd8)
@@ -336,7 +305,7 @@ begin
 						end
 					end
 				 end
-	SEND0_FSM1	:begin// send a 0
+	SEND0_FSM1	:begin// send a 0  
 					state[7:0]<=SEND0_FSM1;
 					counter_delay[31:0]<=counter_delay[31:0]-1'b1;
 					if(counter_delay[31:0]==32'd0)
@@ -383,10 +352,10 @@ begin
 					state[7:0]<=IDLE_FSM;
 					counter_delay[31:0]<=32'd0;
 				 end
-	endcase
+	endcase 
 end
 
-
+    
 endmodule
 
 
