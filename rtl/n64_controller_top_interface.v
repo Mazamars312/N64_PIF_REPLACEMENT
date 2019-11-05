@@ -83,6 +83,7 @@ localparam FINISH_FSM 	 =	8'b0___________1________0___0_1110;
 localparam THREEuSECONDS = 32'd150;
 localparam ONEuSECONDS = 32'd50;
 localparam HUNDRED_MS = 32'd400000;
+localparam FIVEuSECONDS = 32'd400;
   
 
 reg [7:0]   state=IDLE_FSM;
@@ -92,7 +93,7 @@ reg [8:0]   counter_polling =7'd0;
 reg [5:0]   counting_data =6'd0;
 //=9'b110000000;
 reg [33:0]  buffer_buttons=34'd0;
-reg [2:0]   controller_8bit_counter;
+reg [2:0]   controller_input_counter;
 wire        counter_en=state[7];
 wire        oe=state[5];
 wire        finish=state[6];
@@ -138,7 +139,7 @@ reg         joy2_enable;
 reg         joy3_enable;
 reg         joy4_enable;
 
-reg [7:0]  contorller_input_8;   
+reg [7:0]  controller_input;   
 
 wire [7:0] fifo_buffer_write_controller;
 
@@ -259,7 +260,7 @@ always @(posedge clk or negedge reset_l) begin
             endcase
         end
         
-        if(state[6])begin
+        if(state == IDLE_FSM && processing)begin
             joy4_enable <= 'b0;
             joy3_enable <= 'b0;
             joy2_enable <= 'b0;
@@ -293,21 +294,21 @@ reg       read_write; //1 == read;
 always @* begin
     case (cmd_to_controller)
         8'h00 : begin
-            counter_receive <= 9'd24;
+            counter_receive <= 9'd33;
             counter_send <= 9'd0;
             counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
         end
         8'h01 : begin
-            counter_receive <= 9'd32;
+            counter_receive <= 9'd33;
             counter_send <= 9'd0;
             counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
         end
         8'h02 : begin
-            counter_receive <= 9'd264;
+            counter_receive <= 9'd265;
             counter_send <= 9'd0;
             counter_command <= 4'd8;
             address_send <= 1;
@@ -358,13 +359,15 @@ end
 
 reg [2:0] FSM_Main, FSM_Main_c;
 
+reg         first_byte;
+
 reg [3:0] counter_command_count, counter_command_count_c;
 reg [8:0] counter_receive_count, counter_receive_count_c;
 reg [8:0] counter_send_count, counter_send_count_c;
 reg [3:0] counter_send_address_count, counter_send_address_count_c;
 reg       fifo_write_next, fifo_write_next_c;
 reg       fifo_read_next, fifo_read_next_c;
-reg       fifo_read_data_next, fifo_read_data_next_c;
+reg [7:0] fifo_read_data_next, fifo_read_data_next_c;
 reg       controller_active, controller_active_c;
 
 reg [7:0]  sending_data, sending_data_c;
@@ -374,7 +377,8 @@ localparam sendcommand      =	3'd1;
 localparam sendaddress      =	3'd2;
 localparam senddata         =	3'd3;
 localparam receivedata      =	3'd4;
-localparam stopbit          =	3'd5;
+localparam stopbits          =	3'd5;
+localparam stopbitr          =	3'd6;
 
 
 always @(posedge clk or negedge reset_l) begin
@@ -409,30 +413,34 @@ always @* begin
         sendcommand : begin
             if (counter_command_count == 4'h1 && (state == SENT_COMMAND)) begin
                 if (address_send == 1) FSM_Main_c <= sendaddress;
-                else FSM_Main_c <= stopbit;
+                else FSM_Main_c <= stopbits;
             end
             else FSM_Main_c <= sendcommand;
         end
-        stopbit : begin
-            if (state != SEND1_FSM2) FSM_Main_c <= stopbit; //&& counter_polling == 'b0
+        stopbits : begin
+            if (state != SEND1_FSM2) FSM_Main_c <= stopbits; //&& counter_polling == 'b0
             else begin
                 if (counter_receive == 6'd0) FSM_Main_c <= idle_con;
                 else FSM_Main_c <= receivedata;
             end
         end
+        stopbitr : begin
+            if (sync_data_not) FSM_Main_c <= idle_con; //&& counter_polling == 'b0
+            else FSM_Main_c <= stopbitr;
+        end
         sendaddress : begin
             if (counter_send_address_count == 6'd0 && (state == SENT_COMMAND)) begin 
-                if (read_write == 1) FSM_Main_c <= stopbit; 
+                if (read_write == 1) FSM_Main_c <= stopbits; 
                 else FSM_Main_c <= senddata; 
             end
             else FSM_Main_c <= sendaddress;
         end
         senddata : begin
-            if (counter_send_count == 6'd0 && (state == SENT_COMMAND)) FSM_Main_c <= stopbit;
+            if (counter_send_count == 6'd0 && (state == SENT_COMMAND)) FSM_Main_c <= stopbits;
             else FSM_Main_c <= senddata;
         end
         receivedata : begin
-            if (counter_receive_count == 6'd0) FSM_Main_c <= idle_con;
+            if (counter_receive_count == 6'd0 && sync_data_not) FSM_Main_c <= idle_con;
             else FSM_Main_c <= receivedata;
         end
         default : begin
@@ -455,7 +463,7 @@ always @* begin
         sendcommand : begin
             sending_data_c <= cmd_to_controller;
         end
-        stopbit : begin
+        stopbits : begin
             sending_data_c <= 8'b1111_1111; // We just have every number as a stopbit
         end
         sendaddress : begin
@@ -483,11 +491,12 @@ always @* begin
           if (start) controller_active_c <= 1'b1;
           else controller_active_c <= 1'b0;
         end
-        stopbit : begin
+        stopbits : begin
            if (state == SEND1_FSM2) controller_active_c <= 1'b1;
            else controller_active_c <= 1'b1;
         end
-        receivedata : begin
+        receivedata,
+        stopbitr : begin
            controller_active_c <= 1'b0;
         end
         default : begin
@@ -548,8 +557,11 @@ end
 always @* begin
     case (FSM_Main)
         receivedata : begin
-           if (receivedata[2:0] == 3'd0) fifo_read_next_c <= 1'b1;
-           else fifo_read_next_c <= 1'b0;
+            if (first_byte == 1) fifo_read_next_c <= 1'b0;
+            else begin
+                if (controller_input_counter[2:0] == 3'd7 && sync_data) fifo_read_next_c <= 1'b1;
+                else fifo_read_next_c <= 1'b0;
+            end
         end
         default : begin
            fifo_read_next_c <= 'b0;
@@ -567,7 +579,7 @@ end
 always @* begin
     case (FSM_Main)
         receivedata : begin
-           if (receivedata[2:0] == 3'd0) fifo_read_data_next_c <= contorller_input_8;
+           if (controller_input_counter[2:0] == 3'd7) fifo_read_data_next_c <= controller_input;
            else fifo_read_data_next_c <= 1'b0;
         end
         default : begin
@@ -622,7 +634,7 @@ end
 always @* begin
     case (FSM_Main)
         sendaddress : begin
-           if (state == SENT_COMMAND )counter_send_address_count_c <= counter_send_address_count - 4'd1;
+           if (state == SENT_COMMAND)counter_send_address_count_c <= counter_send_address_count - 4'd1;
            else counter_send_address_count_c <= counter_send_address_count;
         end
 
@@ -641,7 +653,7 @@ end
 always @* begin
     case (FSM_Main)
         receivedata : begin
-           if (state == SENT_COMMAND )counter_receive_count_c <= counter_receive_count - 4'd1;
+           if (sync_data_not)counter_receive_count_c <= counter_receive_count - 4'd1;
            else counter_receive_count_c <= counter_receive_count;
         end
 
@@ -650,6 +662,25 @@ always @* begin
         end
     endcase
 end
+
+/***********************************************************
+
+    This make sure that the first 8 bytes readed are
+    not put into the FIFO right away
+
+***********************************************************/
+
+always @(posedge clk or negedge reset_l) begin
+    if (~reset_l) first_byte <= 'b1;
+    else begin
+        if (oe) first_byte <= 'b1;
+        else begin
+            if (controller_input_counter == 1) first_byte <= 1'b0;
+            else first_byte <= first_byte;
+        end
+    end
+end
+
 
 /***********************************************************
 
@@ -664,16 +695,16 @@ wire sync_data_not;
 
 always@(posedge clk)
 begin
-	if(sync_data)
+	if(sync_data_not || (counter_delay_pulses == FIVEuSECONDS))
 	begin
-		controller_8bit_counter <= controller_8bit_counter - 1'b1;
+		controller_input_counter <= controller_input_counter - 1'b1;
 	end
 	else
 	begin
-		controller_8bit_counter<=controller_8bit_counter;
+		controller_input_counter<=controller_input_counter;
 		if(!counter_en)
 		begin
-			controller_8bit_counter <= 3'd7;
+			controller_input_counter <= 3'd0;
 		end
 	end
 end
@@ -683,9 +714,9 @@ end
 always@(posedge clk)
 begin
 	counter_delay_pulses<=counter_delay_pulses;
-	if(sync_data_not)
+	if(sync_data_not )
 	begin
-		contorller_input_8[controller_8bit_counter]<=(counter_delay_pulses[31:0]>=32'd100);
+		controller_input[controller_input_counter[2:0]]<=(counter_delay_pulses[31:0]>=32'd100);
 	end
 	else if(sync_data)
 	begin
@@ -791,9 +822,9 @@ begin
 	GET_FSM 	:begin	 
 					state[7:0]<=GET_FSM;
 					counter_delay[31:0]<=HUNDRED_MS;// DELAY AFTER POLLING AND GETTING DATA
-				   if(counter_receive_count == 'b0)// wait untilt there are 33 pulses coming from the N64 controller
+				   if(FSM_Main == idle_con)// wait untilt there are 33 pulses coming from the N64 controller
 					begin
-						state[7:0]<=FINISH_FSM;
+						state[7:0]<=IDLE_FSM;
 					end
 				 end
 	FINISH_FSM 	:begin
@@ -865,6 +896,8 @@ n64_controller_fifo_write(
 );
 
 endmodule
+
+
 
 
 module async_trap_and_reset (async_sig, outclk, out_sync_sig, auto_reset, reset);

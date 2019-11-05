@@ -82,16 +82,23 @@
 	
 	Controller interface
 	
-		A0 - 8 bit FIFO Write to controller  (upto 33 commands can be written)
-		A1 - 8 bit FIFO Read from Controller (upto 36 commands can be read)
-		A2 - How many Writes are to happen over the interface
-		A3 - How many Reads are to happen over the interface
-		A4 - Status - bit 7 = Waiting , bit 6 = Ready , bit 5 = FIFO Write Full, bit 4 = FIFO Read Full, bit 3 - Controller port 4 is being accessed, 
-					bit 2 - Controller port 3 is being accessed, bit 1 - Controller port 2 is being accessed, bit 0 - Controller port 1 is being accessed
-		A5 - Command - bit 7 = 0 , bit 6 = 0 , bit 5 = FIFO write empty, bit 4 = FIFO read empty, bit 3 - Controller port 4 to process, 
-					bit 2 - Controller port 3 to process, bit 1 - Controller port 2 to process, bit 0 - Controller port 1 to process
+		address 
+        0xA0 - cmd
+        0xA1 - high address
+        0xA2 - Low address/xor CRC[4:0]
+        0xA3 - Controller access and ready/waiting status 
+        0xA4 - Controller controll signals
+        0xA5 - Read fifo (8-bits)
+        0xA6 - Write fifo (8-bits)
+		
+		Commands
+        0x00 - Status of controller
+        0x01 - Read controller buttons
+        0x02 - Read Ram
+        0x03 - Write ram
+        0xff - reset controller
 				
-	Epprom
+	Epprom - Will change later
 	
 		B0 - 8 bit FIFO Write to controller  (upto 33 commands can be written)
 		B1 - 8 bit FIFO Read from Controller (upto 36 commands can be read)
@@ -106,3 +113,12 @@
 		C1 - This is a read reg only for the reset button 0x00 is off, and 0xFF is on. so the main loop needs to check this all the time to reboot the N64
 		C2 - if 0xFF is writen then the PIF Rom is disabled from begin read by the n64
 		C3 - PIF Ram Offset - This is for future looking at where we can have this offset the PIF to allow larger rom's at start up. 8 bit banking
+		
+		
+There is also a controller module that is part of this
+
+	N64_Controller_hand.v - a verilog impermination of the N64 controller that will be able to have a memory pak and rumble pak intergrated. This is only digital at the moment for the 
+							x and y axis.
+							
+							
+	N64_controller_sv.sv - is a test controller that Ive tried to use in simulation. Not fully working at this moment.
