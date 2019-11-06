@@ -44,6 +44,11 @@ reg [31:0]counter_delay_pulses =32'd0;
 reg [8:0]counter_polling =9'd0;
 reg [5:0]counting_data =6'd0;
 
+reg         reset_crc;
+reg  [7:0]  data_crc_in;
+wire [7:0]  data_crc_out;
+reg         data_crc_ready;
+
 //wire [8:0]polling_data=9'b110000000;
 reg [33:0]buffer_buttons=34'd0;
 reg [2:0]counter=3'd0;
@@ -221,7 +226,8 @@ end
 always @* begin
     case (command_in)
         8'h00 : polling_data_c <= {8'h0,8'h5,8'h00,8'h01};
-        8'h02 : polling_data_c <= cart_mem_data;
+        8'h02 : polling_data_c <= (counter_polling <= 9'd8) ?  {4{data_crc_out}} : cart_mem_data;
+        8'h03 : polling_data_c <= {4{data_crc_out}};
         8'hff : polling_data_c <= {32'h0};
         default : polling_data_c <= buttons;
     endcase
@@ -309,7 +315,13 @@ async_trap_and_reset async_trap_and_reset_inst2
 );
 
 
-
+crc_8bit crc_8bit(
+    .clk        (clock),
+    .reset      (reset_crc),
+    .data_in    (data_crc_in),
+    .data_out   (data_crc_out),
+    .data_ready (data_crc_ready)
+    );
 
 
 always@(posedge clock)
