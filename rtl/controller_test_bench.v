@@ -244,7 +244,7 @@ N64_controller N64_controller_joy1
 (
     .clock (clk),
     .reset_l (reset_l),
-	.A (1'b1),
+	.A (1'b0),
 	.B(1'b0),
 	.Z(1'b0),
     .START(1'b1),

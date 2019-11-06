@@ -12,7 +12,9 @@ module N64_controller
 	input mem_rumble,
 	inout out
 );
-wire [31:0]  buttons = {joystick_Y, joystick_X, yellow_RIGHT, yellow_LEFT, yellow_DOWN, yellow_UP, R, L,
+wire [31:0]  buttons = {joystick_Y,
+                        joystick_X, 
+                        yellow_RIGHT, yellow_LEFT, yellow_DOWN, yellow_UP, R, L,
                         1'b0, (START && L && R), gray_RIGHT, gray_LEFT, gray_DOWN, gray_UP, START, Z, B, A};
                         
 						//counter_en___finish_______oe__get__state
@@ -48,6 +50,7 @@ wire data_out=state[0];
 reg data_in=1'b0;
 reg real_in=1'b0;
 reg start_counter=1'b0;
+reg [3:0] mem_write, mem_write_c;
 
 
 
@@ -68,7 +71,7 @@ reg get_processing, get_processing_c;
 
 reg [7:0] command_in, command_in_c;
 
-reg [31:0] cart_mem [2047:0];
+wire [31:0] cart_mem_data;
 
 reg [31:0] polling_data,polling_data_c;
 
@@ -90,6 +93,7 @@ always @(posedge clock or negedge reset_l) begin
         command_in <= 'b0;
         polling_data <= 'b0;
         to_send_bits <= 'b0;
+        mem_write <= 'b0;
     end
     else begin
         controller_fsm <= controller_fsm_c;
@@ -97,6 +101,7 @@ always @(posedge clock or negedge reset_l) begin
         command_in <=  command_in_c;
         polling_data <= polling_data_c;
         to_send_bits <= to_send_bits_c;
+        mem_write <= mem_write_c;
     end    
 end
 
@@ -184,6 +189,25 @@ end
 
 /******************************************************************
 
+    The Write signal to the mem cart. this will use the receive
+    counter to determine the write signal
+
+******************************************************************/
+
+
+always @* begin
+    case (controller_fsm)
+        data_receive : begin
+            mem_write_c <= input_buffer;
+        end
+        default : begin
+            mem_write_c <= 'b0;
+        end
+    endcase
+end
+
+/******************************************************************
+
     The polling_data Reg for what data to send
 
 ******************************************************************/
@@ -192,7 +216,7 @@ end
 always @* begin
     case (command_in)
         8'h00 : polling_data_c <= {8'h0,8'h5,8'h00,8'h01};
-        8'h02 : polling_data_c <= cart_mem[{address_hi,address_lo[7:2]}];
+        8'h02 : polling_data_c <= cart_mem_data;
         8'hff : polling_data_c <= {32'h0};
         default : polling_data_c <= buttons;
     endcase
@@ -432,6 +456,18 @@ begin
     end
 end
 
+
+controller_ram controller_ram(
+    .clk        (clock),
+    
+    .address    ({address_hi,address_lo[7:2]}),
+    .q          (cart_mem_data),
+
+    .wren       (mem_write),
+    .data       ({4{input_buffer}})
+);
+
+
     
 endmodule
 
@@ -487,5 +523,32 @@ begin
 	else
 		 actual_auto_reset_signal <= auto_reset_signal;
 end
+
+endmodule
+
+module controller_ram(
+    input                       clk,
+    
+    input       [14:0]      address,
+    output reg  [31:0]      q,
+
+    input       [3:0]       wren,
+    input       [31:0]      data
+); /* verilator public_module */
+
+parameter width     = 1;
+parameter widthad   = 1;
+
+reg [31:0] mem [8191:0];
+
+always @(posedge clk) begin
+    if(wren[0]) mem[address][ 7: 0] <= data[ 7: 0];
+    if(wren[1]) mem[address][15: 8] <= data[15: 8];
+    if(wren[2]) mem[address][23:16] <= data[23:16];
+    if(wren[3]) mem[address][31:24] <= data[31:24];
+    q <= mem[address];
+end
+
+
 
 endmodule
