@@ -38,13 +38,13 @@
 	Memory map
 
 	0x0000 - 0x003F  PIF Ram viewable on N64
-	0x0040 - 0x007F  PIF Ram temp (this is mostly a space filler but can be used for spare ram)
+	0x0040 - 0x007F  PIF Ram mirror (this is mostly a space filler but can be used for spare ram if we wish too)
 	0x0080 - 0x009F  CIC Rom - 6505 Tables for CIC decoding
 	0x00A0 - 0x00AF  Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller
 	0x00B0 - 0x00BF  EPPROM Interface
 	0x00C0 - 0x00CF  N64 interface
 	0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
-  0x0100 - 0x03FF  RAM for stacking and other accesses. 1k of ram.
+  0x0100 - 0x02FF  RAM for stacking and other accesses. 1k of ram.
 	0x8000 - 0xFFFF  Instruction Rom area
 
 

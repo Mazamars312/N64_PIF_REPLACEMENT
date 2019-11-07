@@ -65,6 +65,7 @@ module N64_controller_top(
 		input [7:0]       data_in_bus,
 		input             write,
 		input             ce,
+		output reg        valid,
 		output reg [7:0]  data_out_bus
 );
 
@@ -197,13 +198,13 @@ always @(posedge clk or negedge reset_l) begin
         processing <= 'b0;
         empty_write_fifo <= 'b0;
         empty_read_fifo <= 'b0;
-
+        valid <= 'b0;
     end
     else begin
         fifo_buffer_write_write <= 1'b0;
         data_out_bus <= 'bz;
         fifo_buffer_read_read <= 'b0;
-
+        valid <= ce;
         empty_read_fifo <= 'b0;
         empty_write_fifo <= 'b0;
         if (write && ce) begin
