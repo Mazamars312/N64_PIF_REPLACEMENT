@@ -29,6 +29,11 @@ module N64_PIF_TOP(
     wire        cpu_write;
     reg         cpu_ready;
     
+    wire [3:0]  pif_interface_address;
+    wire        pif_interface_wren;
+    wire [31:0] pif_interface_data_in;
+    wire [31:0] pif_interface_data_out;
+    
     reg         controller_oe, eeprom_oe, ram_oe, pif_ram_oe, crc_rom_oe, n64_interface_reg_oe, pif_rom_oe, fake_oe;
     wire        controller_valid, eeprom_valid, ram_valid, pif_ram_valid, crc_rom_valid, n64_interface_reg_valid, pif_rom_valid, fake_valid;
 	reg         controller_wr, eeprom_wr, ram_wr, pif_ram_wr, n64_interface_reg_wr;
@@ -132,7 +137,7 @@ module N64_PIF_TOP(
         .DI     (cpu_data_in), 
         .DO     (cpu_data_out), 
         .WE     (cpu_write), 
-        .IRQ    (1'b0), 
+        .IRQ    (reset_button), 
         .NMI    (1'b0), 
         .RDY    (cpu_ready) 
     );
@@ -191,8 +196,7 @@ module N64_PIF_TOP(
 	    .oe			   (pif_ram_oe),
         .q_a           (pif_ram_data_out),
         .valid         (pif_ram_valid),
-    
-        .clkb          (n64_clk),
+
         .address_b     (pif_interface_address),
         .wren_b        (pif_interface_wren),
         .data_b        (pif_interface_data_in),

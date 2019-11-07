@@ -13,7 +13,7 @@
 
  The PIF processes will be as follows
   * Check the PIF ram's last byte to communicate with the N64.
-  * If there is a change to the last byte. check what processes will be ran.
+  * If there is a change to the last byte. check what processes will be ran. (need to check these)
     0x80 = normal channel Loop
     0x20 = CRC check - for 6/7105 CRC checks
     0xC0 = clear PIF ram
@@ -34,6 +34,7 @@
   * Clear ram loop
   * Control the reboot stage of the N64 with the NMI
   * Change the PIF Rom Offset for larger Bios roms
+  * look out for the sequence 0xDEADDEAD in pif ram to reboot N64 via software.
 
 	Memory map
 
@@ -78,7 +79,7 @@
 	N64 Interactions
 
 		C0 - If a 0xFF is written here the NMI on the N64 will become active, if 0x00 then NMI is deactivate
-		C1 - This is a read reg only for the reset button 0x00 is off, and 0xFF is on. so the main loop needs to check this all the time to reboot the N64
+    C1 - If a 0xFF is written here the INT2 on the N64 will become active, if 0x00 then INT2 is deactivate
 		C2 - if 0xFF is written then the PIF Rom is disabled from begin read by the n64
 		C3 - PIF Ram Offset - This is for future looking at where we can have this offset the PIF to allow larger rom's at start up. 8 bit banking
 

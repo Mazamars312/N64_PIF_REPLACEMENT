@@ -1,5 +1,5 @@
 module N64_pif_ram(
-    input               clka,
+    input               clk,
     
     input       [5:0]   address_a,
     input               wren_a,
@@ -8,7 +8,7 @@ module N64_pif_ram(
     output reg  [7:0]   q_a,
 	output reg			valid,
     
-    input               clkb,
+
     input       [3:0]   address_b,
     input               wren_b,
     input       [31:0]  data_b,
@@ -30,7 +30,7 @@ module N64_pif_ram(
 		end
 	end
 
-	always @(posedge clka) begin
+	always @(posedge clk) begin
 		if(wren_a && (address_a[1:0] == 2'b00)) mem0[address_a[5:2]] <= data_a;
 		if(wren_a && (address_a[1:0] == 2'b01)) mem1[address_a[5:2]] <= data_a;
 		if(wren_a && (address_a[1:0] == 2'b10)) mem2[address_a[5:2]] <= data_a;
@@ -44,7 +44,7 @@ module N64_pif_ram(
 		valid <= oe;
 	end
 
-	always @(posedge clkb) begin
+	always @(posedge clk) begin
 		if(wren_b) begin
 			mem0[address_b] <= data_b[ 7: 0];
 			mem1[address_b] <= data_b[15: 8];
