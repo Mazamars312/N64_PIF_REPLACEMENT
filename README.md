@@ -37,15 +37,16 @@
   * look out for the sequence 0xDEADDEAD in pif ram to reboot N64 via software.
 
 	Memory map
-
+  
+  0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
+  0x0000 - 0x01FF  RAM for stacking and other accesses. 1k of ram.
 
 	0x0200 - 0x027F  Reserved for Future stuff
 	0x0280 - 0x029F  CIC Rom - 6505 Tables for CIC decoding
 	0x02A0 - 0x02AF  Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller
 	0x02B0 - 0x02BF  EPPROM Interface
 	0x02C0 - 0x02CF  N64 interface
-	0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
-  0x0000 - 0x01FF  RAM for stacking and other accesses. 1k of ram.
+
   0x1000 - 0x17FF  the Full N64 PIF Rom/ram in ram form. This data will need to be transferred by the 6502 from the orginal Rom.
                    Now we have a fully changeable PIF rom on the fly. ;-)
   0x1800 - 0x1FFF  Mirror of Full N64 ROM and RAM.

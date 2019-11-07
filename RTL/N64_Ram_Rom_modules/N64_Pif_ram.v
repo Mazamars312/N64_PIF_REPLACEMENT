@@ -15,43 +15,49 @@ module N64_pif_ram(
     output reg  [31:0]  q_b
 );
 
-	reg [7:0] mem0 [511:0];
-	reg [7:0] mem1 [511:0];
-	reg [7:0] mem2 [511:0];
-	reg [7:0] mem3 [511:0];
+	reg [31:0] mem [511:0];
 
 	integer i;
 	initial begin
 		for(i = 0; i < 512; i = i + 1) begin
-			mem0[i] = 8'd0;
-			mem1[i] = 8'd0;
-			mem2[i] = 8'd0;
-			mem3[i] = 8'd0;
+			mem[i] = 32'd0;
+	
 		end
 	end
 
-	always @(posedge clka) begin
-		if(wren_a && (address_a[1:0] == 2'b00)) mem0[address_a[10:2]] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b01)) mem1[address_a[10:2]] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b10)) mem2[address_a[10:2]] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b11)) mem3[address_a[10:2]] <= data_a;
-		case (address_a[1:0])
-			2'b00 	: q_a <= mem0[address_a[10:2]];
-			2'b01 	: q_a <= mem1[address_a[10:2]];
-			2'b10 	: q_a <= mem2[address_a[10:2]];
-			default	: q_a <= mem3[address_a[10:2]];
-		endcase
-		valid <= oe;
+    reg [31:0]  temp_a_data;
+    reg [1:0]   temp_a_address;
+    
+    always @(posedge clka) begin
+	   temp_a_address <= address_a[1:0];
+	   valid <= oe;
 	end
+	
+	always @* begin
+        case (temp_a_address[1:0])
+			2'b00 	: q_a <= temp_a_data[ 7: 0];
+			2'b01 	: q_a <= temp_a_data[15: 8];
+			2'b10 	: q_a <= temp_a_data[23:16];
+			default	: q_a <= temp_a_data[31:24];
+		endcase
+    end
+
+	always @(posedge clka) begin
+		if(wren_a && (address_a[1:0] == 2'b00)) mem[address_a[10:2]][ 7: 0] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b01)) mem[address_a[10:2]][15: 8] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b10)) mem[address_a[10:2]][23:16] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b11)) mem[address_a[10:2]][31:24] <= data_a;
+        
+		temp_a_data <= mem[address_a[10:2]];
+	end
+	
+
 
 	always @(posedge clkb) begin
 		if(wren_b) begin
-			mem0[address_b] <= data_b[ 7: 0];
-			mem1[address_b] <= data_b[15: 8];
-			mem2[address_b] <= data_b[23:16];
-			mem3[address_b] <= data_b[31:24];
+			mem[address_b] <= data_b;
 		end
-		q_b <= {mem3[address_b], mem2[address_b], mem1[address_b], mem0[address_b]};
+		q_b <= mem[address_b];
 	end
 
 endmodule

@@ -18,14 +18,14 @@
  * on the output pads if external memory is required.
  */
 
-module cpu6502( clk, reset, AB, DI, DO, WE, IRQ, NMI, RDY );
+module cpu6502( clk, reset, AB_OUT, DI, DO_OUT, WE_OUT, IRQ, NMI, RDY );
 
 input clk;              // CPU clock 
 input reset;            // reset signal
-output reg [15:0] AB;   // address bus
+output reg [15:0] AB_OUT;   // address bus
 input [7:0] DI;         // data in, read bus
-output [7:0] DO;        // data out, write bus
-output WE;              // write enable
+output reg [7:0] DO_OUT;        // data out, write bus
+output reg WE_OUT;              // write enable
 input IRQ;              // interrupt request
 input NMI;              // non-maskable interrupt request
 input RDY;              // Ready signal. Pauses CPU when RDY=0 
@@ -98,7 +98,7 @@ wire [7:0] P = { N, V, 2'b11, D, I, Z, C };
 /*
  * instruction decoder/sequencer
  */
-
+reg [15:0] AB ;
 reg [5:0] state;
 
 /*
@@ -149,6 +149,11 @@ reg brk;                // doing BRK
 
 reg res;                // in reset
 
+always @(posedge clk) begin
+    AB_OUT <= AB;
+    DO_OUT <= DO;
+    WE_OUT <= WE;
+end
 /*
  * ALU operations
  */
@@ -411,11 +416,13 @@ always @*
  * source of the address, such as the ALU or DI.
  */
 always @(posedge clk)
+    
     if( state != PUSH0 && state != PUSH1 && RDY && 
         state != PULL0 && state != PULL1 && state != PULL2 )
     begin
         ABL <= AB[7:0];
         ABH <= AB[15:8];
+        
     end
 
 /*

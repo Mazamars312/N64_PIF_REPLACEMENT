@@ -19,6 +19,7 @@ module N64_PIF_TOP(
     input reset_button,
     output NMI,
     output INT2,
+    input PAL_NTSC,
     input clk,
     input reset_l
     );
@@ -69,9 +70,6 @@ module N64_PIF_TOP(
                                 n64_interface_reg_oe <= 1'b1; 
                                 n64_interface_reg_wr <= cpu_write; 
                                 end
-                16'h02Dz,
-                16'h02Ez,
-                16'h02Fz    : fake_oe <= 1'b1;
                 16'h00zz,
                 16'h01zz    : begin 
                                 ram_6502_oe <= 1'b1; 
@@ -81,7 +79,6 @@ module N64_PIF_TOP(
                                 pif_ram_oe <= 1'b1; 
                                 pif_ram_wr <= cpu_write; 
                                 end
-                                        
                 16'h2zzz    : pif_rom_oe <= 1'b1;
                 default     : rom_6502_oe <= 1'b1;
             endcase
@@ -89,13 +86,13 @@ module N64_PIF_TOP(
     
     always @* begin
         casez (address)
+            16'h00zz,
+            16'h01zz           : cpu_data_in <= ram_6502_out;
             16'h028z,
             16'h029z           : cpu_data_in <= crc_data_out;
             16'h02Az           : cpu_data_in <= n64_controller_data_out;
             16'h02Bz           : cpu_data_in <= eeprom_data_out;
             16'h02Cz           : cpu_data_in <= n64_interface_reg_data_out;
-            16'h00zz,
-            16'h01zz           : cpu_data_in <= ram_6502_out;
             16'h1zzz           : cpu_data_in <= pif_ram_out; 
             16'h2zzz           : cpu_data_in <= pif_rom_out; 
             default            : cpu_data_in <= rom_6502_out;
@@ -104,13 +101,13 @@ module N64_PIF_TOP(
 
     always @* begin
         casez (address)
+            16'h00zz,
+            16'h01zz           : cpu_ready <= ram_6502_valid;
             16'h028z,
             16'h029z           : cpu_ready <= crc_rom_valid;
             16'h02Az           : cpu_ready <= controller_valid;
             16'h02Bz           : cpu_ready <= eeprom_valid;
             16'h02Cz           : cpu_ready <= n64_interface_reg_valid;
-            16'h00zz,
-            16'h01zz           : cpu_ready <= ram_6502_valid;
             16'h1zzz           : cpu_ready <= pif_ram_valid; 
             16'h2zzz           : cpu_ready <= pif_rom_valid; 
             default            : cpu_ready <= rom_6502_valid;
@@ -121,10 +118,10 @@ module N64_PIF_TOP(
     cpu6502 cpu6502( 
         .clk    (clk), 
         .reset  (reset_l), 
-        .AB     (address), 
+        .AB_OUT (address), 
         .DI     (cpu_data_in), 
-        .DO     (cpu_data_out), 
-        .WE     (cpu_write), 
+        .DO_OUT (cpu_data_out), 
+        .WE_OUT (cpu_write), 
         .IRQ    (reset_button), 
         .NMI    (1'b0), 
         .RDY    (cpu_ready) 
@@ -217,11 +214,32 @@ module N64_PIF_TOP(
     
     .NMI                    (NMI),
     .INT2                   (INT2),
+    .PAL_NTSC               (PAL_NTSC),
 
     .pif_interface_address  (pif_interface_address),
     .pif_interface_wren     (pif_interface_wren),
     .pif_interface_data_in  (pif_interface_data_in),
     .pif_interface_data_out (pif_interface_data_out)
     );
+    
+    
+//      Lets have this ready
+
+//    i2c_master i2c_master(
+//		.clk              (clk),
+//		.reset            (reset_l),
+//		.start            (eeprom_oe),
+		
+//		.nbytes_in        (8'd31),
+//		.addr_in          (address),
+//		.rw_in            (eeprom_wr),
+//		.write_data       (cpu_data_in),
+//		.read_data        (eeprom_data_out),
+//		.tx_data_req      (tx_data_req), 
+//		.rx_data_ready    (rx_data_ready), 
+		
+//		.sda_w            (eprom_data),
+//		.scl              (eprom_clk)
+//	);
     
 endmodule
