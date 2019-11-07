@@ -1,4 +1,4 @@
-module pif_ram(
+module ram_6502(
     input               clk,
     
     input       [8:0]   address_a,

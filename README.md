@@ -38,14 +38,19 @@
 
 	Memory map
 
-	0x0000 - 0x003F  PIF Ram viewable on N64
-	0x0040 - 0x007F  PIF Ram mirror (this is mostly a space filler but can be used for spare ram if we wish too)
+
+	0x0000 - 0x007F  Reserved for Future stuff
 	0x0080 - 0x009F  CIC Rom - 6505 Tables for CIC decoding
 	0x00A0 - 0x00AF  Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller
 	0x00B0 - 0x00BF  EPPROM Interface
 	0x00C0 - 0x00CF  N64 interface
 	0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
   0x0100 - 0x02FF  RAM for stacking and other accesses. 1k of ram.
+  0x1000 - 0x17FF  the Full N64 PIF Rom/ram in ram form. This data will need to be transferred by the 6502 from the orginal Rom.
+                   Now we have a fully changeable PIF rom on the fly. ;-)
+  0x1800 - 0x1FFF  Mirror of Full N64 ROM and RAM.
+  0x2000 - 0x27FF  The original PIF rom that needs to be copied to the PIF ram - this will be a read only rom for backups.
+  0x2800 - 0x2FFF  Mirror original PIF rom.
 	0x8000 - 0xFFFF  Instruction Rom area
 
 
