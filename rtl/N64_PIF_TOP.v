@@ -117,13 +117,13 @@ module N64_PIF_TOP(
     
     cpu6502 cpu6502( 
         .clk    (clk), 
-        .reset  (reset_l), 
+        .reset_l(reset_l), 
         .AB_OUT (address), 
         .DI     (cpu_data_in), 
         .DO_OUT (cpu_data_out), 
         .WE_OUT (cpu_write), 
-        .IRQ    (reset_button), 
-        .NMI    (1'b0), 
+        .IRQ    (1'b1), 
+        .NMI    (1'b1), 
         .RDY    (cpu_ready) 
     );
     
@@ -174,7 +174,7 @@ module N64_PIF_TOP(
     
     pif_rom pif_rom( // this is the pif rom for the N64 to be uploaded into the ram
         .clk           (clk),
-        .address_a     (address),
+        .address       (address),
         .oe            (pif_rom_oe),
 	    .valid		   (pif_rom_valid),
         .q_a           (pif_rom_out)

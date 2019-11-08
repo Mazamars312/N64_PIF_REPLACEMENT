@@ -37,7 +37,7 @@
   * look out for the sequence 0xDEADDEAD in pif ram to reboot N64 via software.
 
 	Memory map
-  
+
   0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
   0x0000 - 0x01FF  RAM for stacking and other accesses. 1k of ram.
 
@@ -96,4 +96,9 @@ There is also a controller module that will emulate the full N64 controller. Yep
 							x and y axis.
 
 
-	N64_controller_sv.sv - Is a test controller that I've tried to use in simulation. Not fully working at this moment.
+What needs to be done:
+
+* 6502 ASM code to run
+* build up the mempak funchtion in the controller module so we can have a internal mempak on the core.
+* once the mempak in the controller is done, we need to do the testing of the CRC module for the controller works.
+* EEPROM FIFO in and outs need to be started and then interfaced with the EEPROM master code I have.
