@@ -1,38 +1,38 @@
-; Ok Here we are, this is the 6502 code for the PIF controller.
-; This will be a full work in processes
 
 * = $F000
-; Address Constants
+
 CRCrom_LUT0	= $0280
 CRCrom_LUT1	= $0290
 
-Controller_CMD    = $02A0
-Controller_LOA    = $02A1
-Controller_HIA    = $02A2
-Controller_WRT    = $02A3
-Controller_RED    = $02A4
-Controller_STA    = $02A5
-Controller_CON    = $02A6
+Controller_CMD    = $32A0
+Controller_LOA    = $32A1
+Controller_HIA    = $32A2
+Controller_WRT    = $32A3
+Controller_RED    = $32A4
+Controller_STA    = $32A5
+Controller_CON    = $32A6
 
-EPROM_CMD         = $02B0
-EPROM_LOA         = $02B1
-EPROM_HIA         = $02B2
-EPROM_WRT         = $02B3
-EPROM_RED         = $02B4
-EPROM_STA         = $02B5
-EPROM_CON         = $02B6
+EPROM_CMD         = $32B0
+EPROM_LOA         = $32B1
+EPROM_HIA         = $32B2
+EPROM_WRT         = $32B3
+EPROM_RED         = $32B4
+EPROM_STA         = $32B5
+EPROM_CON         = $32B6
 
-N64_NMI           = $02C0
-N64_INT2          = $02C1
-N64_PIFDISABLED   = $02C2
-N64_PIF_PAGE      = $02C3
-N64_PAL           = $02C4
+N64_NMI           = $32C0
+N64_INT2          = $32C1
+N64_PIFDISABLED   = $32C2
+N64_PIF_PAGE      = $32C3
+N64_PAL           = $32C4
 
 PIF_ROM           = $1000
 
 PIF_RAM           = $2000
 
-; Controller Commands
+N64_RAM           = $2700
+N64_SGM           = $27FF
+
 controller_status       = #$00
 controller_read_buttons = #$01
 controller_read_mem     = #$02
@@ -40,15 +40,19 @@ controller_write_mem    = #$03
 controller_reset        = #$FF
 
 START:
-  jmp PIF_ROM2RAM
+  jsr PIF_ROM2RAM
+  jsr NMI_UP
+  jmp MAINLOOP
+
 
 MAINLOOP:
+  jsr CHECK_CONTROLLER_STATUS
 
 
 
 CHECK_CONTROLLER_STATUS:
   lda Controller_STA
-  jmp CHECK_CONTROLLER_STATUS
+  rts
 
 
 PIF_ROM2RAM:
@@ -75,7 +79,29 @@ PIF_ROM2RAM:
   lda $FE ;load high order mem address into a
   cmp #$20 ;compare with the last address we want to write
   bne Loop ;if we're not there yet, loop
-  jmp MAINLOOP
+  rts
+
+NMI_UP:
+  lda #$ff
+  sta N64_NMI
+  rts
+
+NMI_DOWN:
+  lda #$ff
+  sta N64_NMI
+  rts
+
+INT_UP:
+  lda #$ff
+  sta N64_INT2
+  rts
+
+INT_DOWN:
+  lda #$ff
+  sta N64_INT2
+  rts
+
+
 
 ;
 ;

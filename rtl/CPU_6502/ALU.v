@@ -1,25 +1,6 @@
-/*
- * ALU.
- *
- * AI and BI are 8 bit inputs. Result in OUT.
- * CI is Carry In.
- * CO is Carry Out.
- *
- * op[3:0] is defined as follows:
- *
- * 0011   AI + BI
- * 0111   AI - BI
- * 1011   AI + AI
- * 1100   AI | BI
- * 1101   AI & BI
- * 1110   AI ^ BI
- * 1111   AI
- *
- */
-
-module ALU( clk, reset_l,op, right, AI, BI, CI, CO, BCD, OUT, V, Z, N, HC, RDY );
+`timescale 1ns / 1ps
+module ALU( clk, op, right, AI, BI, CI, CO, BCD, OUT, V, Z, N, HC, RDY );
 	input clk;
-	input reset_l;
 	input right;
 	input [3:0] op;		// operation
 	input [7:0] AI;
@@ -93,16 +74,7 @@ always @* begin
 end
 
 // calculate the flags 
-always @(posedge clk or negedge reset_l) begin
-    if (~reset_l) begin
-    AI7 <= 'b0;
-	BI7 <= 'b0;
-	OUT <= 'b0;
-	CO  <= 'b0;
-	N   <= 'b0;
-	HC  <= 'b0;
-    end
-    else begin
+always @(posedge clk)
     if( RDY ) begin
 	AI7 <= AI[7];
 	BI7 <= temp_BI[7];
@@ -111,8 +83,6 @@ always @(posedge clk or negedge reset_l) begin
 	N   <= temp[7];
 	HC  <= temp_HC;
     end
-    end
-end
 
 assign V = AI7 ^ BI7 ^ CO ^ N;
 assign Z = ~|OUT;

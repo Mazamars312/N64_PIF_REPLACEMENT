@@ -38,20 +38,21 @@
 
 	Memory map
 
-  0x00D0 - 0x00FF  Un-reserved - Will look at a RTC interface. Or have some CPU control regs like a page changer
-  0x0000 - 0x01FF  RAM for stacking and other accesses. 1k of ram.
-
-	0x0200 - 0x027F  Reserved for Future stuff
-	0x0280 - 0x029F  CIC Rom - 6505 Tables for CIC decoding
-	0x02A0 - 0x02AF  Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller
-	0x02B0 - 0x02BF  EPPROM Interface
-	0x02C0 - 0x02CF  N64 interface
+  0x0000 - 0x0FFF  RAM for stacking and other accesses. 4k of ram.
 
   0x1000 - 0x17FF  the Full N64 PIF Rom/ram in ram form. This data will need to be transferred by the 6502 from the orginal Rom.
                    Now we have a fully changeable PIF rom on the fly. ;-)
   0x1800 - 0x1FFF  Mirror of Full N64 ROM and RAM.
   0x2000 - 0x27FF  The original PIF rom that needs to be copied to the PIF ram - this will be a read only rom for backups.
   0x2800 - 0x2FFF  Mirror original PIF rom.
+
+  0x3200 - 0x327F  Reserved for Future stuff
+	0x3280 - 0x329F  CIC Rom - 6505 Tables for CIC decoding
+	0x32A0 - 0x32AF  Controller interface: A0 = 8 bit FIFO Write to controller, A1 8bit FIFO Read from Controller
+	0x32B0 - 0x32BF  EPPROM Interface
+	0x32C0 - 0x32CF  N64 interface
+  0x32D0 - 0x32FF  Reserved for Future stuff
+
 	0x8000 - 0xFFFF  Instruction Rom area
 
 
@@ -99,6 +100,15 @@ There is also a controller module that will emulate the full N64 controller. Yep
 What needs to be done:
 
 * 6502 ASM code to run
+  tasks to be done:
+      * Start up process
+        1. Move pif_rom to pif_ram - DONE
+        2. make NMI high once transfer is done.
+        3. make the int2 signal LOW I believe that is the case
+        4. make PIF_RAM {0x3ff} address byte to 0x00;
+
+      * Have a main loop for the Check of the Reset button every half second
+        1. check the int
 * build up the mempak funchtion in the controller module so we can have a internal mempak on the core.
 * once the mempak in the controller is done, we need to do the testing of the CRC module for the controller works.
 * EEPROM FIFO in and outs need to be started and then interfaced with the EEPROM master code I have.

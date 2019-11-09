@@ -48,7 +48,7 @@ module N64_PIF_SIMULATION(
         n64_rsp <= 'b0;
         #4 reset_l <= 'b0;
 
-        #4 reset_l <= 'b1;
+        #10 reset_l <= 'b1;
         
         #100 $finish;
     end

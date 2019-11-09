@@ -53,7 +53,7 @@ module m6502(
   //----------------------------------------------------------------
   // Internal constant and parameter definitions.
   //----------------------------------------------------------------
-  localparam BOOT_ADDR = 16'h0000;
+  localparam BOOT_ADDR = 16'hF000;
 
   localparam AMUX_TMP = 1'h0;
   localparam AMUX_PC  = 1'h1;

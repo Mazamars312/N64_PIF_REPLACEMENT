@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module N64_pif_ram(
     input               clka,
     

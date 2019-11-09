@@ -1,7 +1,8 @@
+`timescale 1ns / 1ps
 module rom_6502(
     input               clk,
     
-    input       [11:0]   address_a,
+    input       [11:0]  address,
 	input				oe,
 	output reg			valid,
     output reg  [7:0]   q_a
@@ -76,16 +77,16 @@ module rom_6502(
         mem[58] = 8'h4C; 
         mem[59] = 8'h03; 
         mem[60] = 8'hC0;
-        mem[4090] = 8'hF0;
-        mem[4091] = 8'h00;
-        mem[4092] = 8'hF0;
-        mem[4093] = 8'h00;
-        mem[4094] = 8'hF0;
-        mem[4095] = 8'h00;
+        mem[4090] = 8'h00;
+        mem[4091] = 8'hC0;
+        mem[4092] = 8'h00;
+        mem[4093] = 8'hC0;
+        mem[4094] = 8'h00;
+        mem[4095] = 8'hC0;
 	end
 
 	always @(posedge clk) begin
-		q_a <= mem[address_a];
+		q_a <= mem[address];
 		valid <= oe;
 	end
 

@@ -1,27 +1,28 @@
+`timescale 1ns / 1ps
 module ram_6502(
     input               clk,
     
-    input       [8:0]   address_a,
+    input       [10:0]   address,
 	input				we,
-	input       [7:0]   data_a,
+	input       [7:0]   data,
 	input				oe,
 	output reg			valid,
     output reg  [7:0]   q_a
     
 );
 
-	reg [7:0] mem [511:0];
+	reg [7:0] mem [4095:0];
 
 	integer i;
 	initial begin
-		for(i = 0; i < 512; i = i + 1) begin
+		for(i = 0; i < 4096; i = i + 1) begin
 			mem[i] = 8'd0;
 		end
 	end
 
 	always @(posedge clk) begin
-		if (we) mem[address_a] <= data_a;
-		q_a <= mem[address_a];
+		if (we) mem[address] <= data;
+		q_a <= mem[address];
 		valid <= oe;
 	end
 

@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 /*
  * This file is subject to the terms and conditions of the BSD License. See
  * the file "LICENSE" in the main directory of this archive for more details.

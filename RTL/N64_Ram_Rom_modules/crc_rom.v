@@ -1,7 +1,8 @@
+`timescale 1ns / 1ps
 module crc_rom(
     input               clk,
     
-    input       [4:0]   address_a,
+    input       [4:0]   address,
 	input				oe,
 	output reg			valid,
     output reg  [7:0]   q_a
@@ -64,7 +65,7 @@ module crc_rom(
 	end
 
 	always @(posedge clk) begin
-		q_a <= mem[address_a];
+		q_a <= mem[address];
 		valid <= oe;
 	end
 
