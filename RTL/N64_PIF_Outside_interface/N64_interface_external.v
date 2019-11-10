@@ -25,6 +25,7 @@ module N64_interface_external(
     output reg          INT2,
     
     input               PAL_NTSC,
+    input               N64_reset,
 
     output reg [8:0]    pif_interface_address,
     output reg          pif_interface_wren,
@@ -86,6 +87,7 @@ module N64_interface_external(
                     4'h2    : cpu_data_out <= {8{pif_disable}};
                     4'h3    : cpu_data_out <= pif_page;
                     4'h4    : cpu_data_out <= {8{PAL_NTSC}};
+                    4'h5    : cpu_data_out <= {8{N64_reset}};
                     default : cpu_data_out <= crap_write;
                 endcase
             end
