@@ -33,7 +33,7 @@ PIF_ROM           = $2000
 
 PIF_RAM           = $1000
 
-N64_RAM           = $1700
+N64_RAM           = $17C0
 N64_SGM           = $17FF
 
 
@@ -65,17 +65,122 @@ N64_SGM           = $17FF
 
 ;f0-ff is mamory transfers
 
+testing:
+	LDA #$04
+	STA $3280
+	LDA #$07
+	STA $3281
+	LDA #$0A
+	STA $3282
+	LDA #$07
+	STA $3283
+	LDA #$0E
+	STA $3284
+	LDA #$05
+	STA $3285
+	LDA #$0E
+	STA $3286
+	LDA #$01
+	STA $3287
+	LDA #$0C
+	STA $3288
+	LDA #$0F
+	STA $3289
+	LDA #$08
+	STA $328A
+	LDA #$0F
+	STA $328B
+	LDA #$06
+	STA $328C
+	LDA #$03
+	STA $328D
+	LDA #$06
+	STA $328E
+	LDA #$09
+	STA $328F
+	
+	LDA #$04
+	STA $3290
+	LDA #$01
+	STA $3291
+	LDA #$0A
+	STA $3292
+	LDA #$07
+	STA $3293
+	LDA #$0E
+	STA $3294
+	LDA #$05
+	STA $3295
+	LDA #$0E
+	STA $3296
+	LDA #$01
+	STA $3297
+	LDA #$0C
+	STA $3298
+	LDA #$09
+	STA $3299
+	LDA #$08
+	STA $329A
+	LDA #$05
+	STA $329B
+	LDA #$06
+	STA $329C
+	LDA #$03
+	STA $329D
+	LDA #$0C
+	STA $329E
+	LDA #$09
+	STA $329F
+	;8FBB1DB876B63CEC
+	
+	LDA #$8f
+	STA $17f0
+	LDA #$bb
+	STA $17F1
+	LDA #$1d
+	STA $17F2
+	LDA #$b8
+	STA $17F3
+	LDA #$9A
+	STA $17F4
+	LDA #$76
+	STA $17F5
+	LDA #$b6
+	STA $17F6
+	LDA #$3c
+	sta $17F7
+	LDA #$02
+	STA $17F8
+	LDA #$5b
+	STA $17F9
+	LDA #$ea
+	STA $17FA
+	LDA #$ed
+	STA $17FB
+	LDA #$ec
+	STA $17FC
+	LDA #$80
+	STA $17FD
+	LDA #$3a
+	STA $17FE
+	LDA #$6b
+	STA $17FF
+	jsr crcinit6105	
+	jmp testing
 
+; this is the starting code for the orginal start up ready to go
+;  jsr INT_DOWN
+;  jsr NMI_DOWN
+;  jsr CLEARPIFROM
+;  jsr PIF_ROM2RAM
+;  JSR NMI_UP
+;  lda #$80
+;  sta N64_SGM
+;  JSR CRC_INIT_BOOTUP
+  
+;  lda #$80
+;  sta N64_SGM
 
-  jsr INT_DOWN
-  jsr NMI_DOWN
-  jsr CLEARPIFRAM
-  jsr PIF_ROM2RAM
-  jsr NMI_UP
-  lda #$00
-  sta N64_SGM
-  jsr CRC_INIT_BOOTUP
-  jmp MAINLOOP
 
 MAINLOOP:
   jsr CHECKSEG
@@ -146,7 +251,8 @@ CLEARPIFROM:
   sta $FD
   lda #$10
   sta $FE
-  ldy #$00 ;reset x and y for our loop
+  LDY #$00 ;reset x and y for our loop
+  lda #$00
   ldx #$00
   jmp CLEARPIFRAMLOOP
 
@@ -156,15 +262,16 @@ CLEARPIFRAM:
   lda #$17
   STA $FE
   ldy #$C0
-  lda #$01	
+  LDA #$00
+  ldx #$00	
 CLEARPIFRAMLOOP:
   sta ($FD),Y ;indirect index dest memory address, starting at $00
   INy 
   cpy #$00
   bne CLEARPIFRAMLOOP ;loop until our dest goes over 255
   inc $FE ;increment high order dest memory address, starting at $60
-  lda $FE ;load high order mem address into a
-  cmp #$18;compare with the last address we want to write
+  ldx $FE ;load high order mem address into a
+  cpx #$18;compare with the last address we want to write
   bne CLEARPIFRAMLOOP ;if we're not there yet, loop
   rts
 
@@ -207,7 +314,7 @@ test_pif_process:
   BNE clear_process
   JMP pif_process_init
 clear_process:  
-  lda #$00        ; this is the ready signal for the PIF
+  txa        ; this is the ready signal for the PIF
   sta N64_SGM
   rts
 
@@ -225,7 +332,7 @@ CHECK_RESET_BUTTON:
   lda #$FF
   cmp N64_RESET_BUTTON
   Beq RESET_BUTTON_INIT
-  jmp MAINLOOP
+  rts
 RESET_BUTTON_INIT:
   lda #$00
   ldx #$00
@@ -276,23 +383,26 @@ debounce_completed:
   sta $03
   lda #$FF
   sta N64_NMI
-  jsr CRC_UPDATE
-  jmp MAINLOOP
+  
 
 
 CRC_UPDATE:
-  ldx #$24
-  ldy #$00
+  ldx #$00
+  LDY #$24
+  LDA #$C0
+  STA $CE
+  LDA #$17
+  sta $CF
 CRC_UPDATE_LOOP:
-  lda $d0,x
-  sta $17c0,y
+  lda $00d0,x
+  sta ($CE),y
   inx
   iny
-  cpx #$28
-  bne CRC_INIT_BOOTUP_LOOP
-  lda #$80
+  CPy #$28
+  bne CRC_UPDATE_LOOP
+  lda #$00
   sta N64_SGM
-  jmp CRC_UPDATE_LOOP
+  jmp CRC_INIT_BOOTUP_LOOP
 
 
   ;d0 is the 31:24 bits of the CRC being used
@@ -303,27 +413,33 @@ CRC_UPDATE_LOOP:
 CRC_INIT_BOOTUP:
   lda #$00
   ldx #$24
-  sta $17c0,X
+  STA N64_RAM,X
+  sta $D0
   inx
   lda #$00
-  LDY N64_PAL
+  LDY N64_PAL ; if High we will make it PAL
   cpy #$FF
-  bne CRC_INIT_BOOTUP_PAL
+  beq CRC_INIT_BOOTUP_PAL
   lda #$0A
 CRC_INIT_BOOTUP_PAL:
-  sta $17c0,X
+  STA N64_RAM,X
+  sta $D1
   inx
   lda #$3F
-  sta $17c0,X
+  STA N64_RAM,X
+  sta $D2
   inx
-  sta $17c0,X
+  STA N64_RAM,X
+  sta $D3
+  LDA #$00
+  sta N64_SGM
 CRC_INIT_BOOTUP_LOOP:
   ldx N64_PIF_PROCESSING
   cpx #$FF
   bne CRC_INIT_BOOTUP_LOOP
   ldx N64_PIF_ADDRESS
   cpx #$FC
-  bcs CRC_INIT_BOOTUP_LOOP
+  bcc CRC_INIT_BOOTUP_LOOP
   lda #$80
   sta N64_SGM
   rts
@@ -417,6 +533,16 @@ eeprom_init:
 ; It is based on the code by X-scale but converted to ASM.
 ; It has not been tested yet at this moment but it does have most of teh code down ready to be tested.
 
+; zeropage C0 is the key
+; zeropage C1 is the lut 0 or 1
+; zeropage C2 is the sgn
+; zeropage C3 is the mag
+; zeropage C4 is the mod
+; zeropage C5 is the responce
+; zeropage C6 is the challenge
+; zeropage c7/c8 the address to be read from the CRC Rom
+; zeropage c9 is the offset base address of the CRC Rom
+
 
 crcinit6105
   lda #$0B
@@ -433,43 +559,38 @@ crcinit6105
   sta $c9
   ldx #$00 ; clear the x Reg will be used for the respoce
   ldy #$00 ; here is the key we start with
-  lda #$C0  ; Here is the start of the CRC seek for the challange
-  sta $FC
-  lda #$27
-  sta $FD ; this is the start of where the CRC SEED will be for the 6105 code in memory so we can start working with it
-  lda #$80
-  sta $FA
-  lda #$32
-  sta $FB ; this is the location of the first address for the CRC roms
+  lda #$00  ; Here is the start of the CRC seek for the challange
+
 
 crc_main_loop
-  lda [$FC],X ; we get the hig nibbles to  process
+  lda $17F0,Y ; we get the hig nibbles to  process
   lsr  ; we shift 4 for the top nibble
   lsr 
   lsr 
   lsr 
-  and #$0F ; and just to make sure that the nibble is only 4Bits
+  AND #$0F ; and just to make sure that the nibble is only 4Bits
+  sty $C9
   jsr crc_process_nibble
-  stx $F0
-  ldx #$00
-  lda [$FC],X
+  stx $CA
+  LDX #$00
+  ldy $C9
+  lda $17F0,y
   and #$0F
   jsr crc_process_nibble
-  stx $F1 ; Store the first nibble at zeropage F0
-  lda $F0
+  STX $CB ; Store the first nibble at zeropage F0
+  lda $CA
   asl 
   asl 
   asl 
   asl 
-  ora $F1
-  ldx #$00
-  sta [$FC],X
-  inc $FC
-  ldx $FC
-  cpx #$FF
+  ora $CB
+  ldy $C9
+  STA $17F0,y
+  iny
+  cpy #$0F
   bne crc_main_loop
   lda #$00
-  sta [$FC],X
+  sta $17FF
   rts
 
 ; zeropage C0 is the key
@@ -485,14 +606,16 @@ crc_main_loop
 crc_process_nibble ; from here we will use the C0 zeropage locations
   sta $C6
   lda $C0
-  adc #$05
+  adc #$04
   sta $C5
   ldx #$00
-responce_multi_5 ; responce = (key +5) * 5
-  adc $C5
-  inx
-  cpx $C6
-  bne responce_multi_5
+responce_multi_5 ; responce = (key +5) * Challange
+  INX
+  CPX $C6
+  bcs responce_zero
+  ADC $C5
+  jmp responce_multi_5
+responce_zero
   and #$07 ; responce & 0x07
   sta $C5
   ; key = lut [responce]
@@ -501,11 +624,13 @@ responce_multi_5 ; responce = (key +5) * 5
   beq lut1_key
 lut0_key
   ldx $C5
-  lda $3280,x
+  LDA $3280,x
+  sta $C0
   jmp sgn_key
 lut1_key
   ldx $C5
-  lda $3290,x
+  LDA $3290,x
+  sta $C0
 sgn_key:
   lda $C5
   lsr 
@@ -527,17 +652,20 @@ mag_false:
   sta $c3
 
 mod_test:
-  lda #$B0
+  lda $C3
   sta $00
-  lda #$03
+  lda $03
   sta $01
   lda $00
   sec
 modulus:
-  sbc $00
+  cmp #$00
+  beq mobulus_zero
+  SBC $00
   bcs modulus
   adc $01
-  tax
+mobulus_zero
+  TAX
   cpx #$1
   bne sign_neg_1
   lda $C2
@@ -590,8 +718,9 @@ lut_check:
   rts
 LUT_NOT_TRUE:
   lda #$01
-  sta $C1
-  jmp crc_main_loop
+  STA $C1
+  ldx $C5
+  rts
 
 ;d0 is the 31:24 bits of the CRC
 ;d1 is the 23:16 bits of the CRC
