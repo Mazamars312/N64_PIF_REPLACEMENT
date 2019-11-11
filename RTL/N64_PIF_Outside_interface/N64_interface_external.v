@@ -46,6 +46,7 @@ module N64_interface_external(
     reg         pif_ack_sent;
     reg         n64_rsp_in_reg, n64_rsp_in_reg1, n64_rsp_in_reg2;
     reg [11:0]  pif_count;
+    reg         pif_processing;
     
     /***************************************************************
     
@@ -88,6 +89,9 @@ module N64_interface_external(
                     4'h3    : cpu_data_out <= pif_page;
                     4'h4    : cpu_data_out <= {8{PAL_NTSC}};
                     4'h5    : cpu_data_out <= {8{N64_reset}};
+                    4'h6    : cpu_data_out <= {8{pif_processing}};
+                    4'h7    : cpu_data_out <= {1'b0, pif_interface_address[8:2]};
+                    4'h8    : cpu_data_out <= {5'd0, pif_data_transfer_type};
                     default : cpu_data_out <= crap_write;
                 endcase
             end
@@ -130,6 +134,7 @@ module N64_interface_external(
             n64_rsp_in_reg     <= 1'b1;
             n64_rsp_in_reg1   <= 1'b1;
             n64_rsp_in_reg2   <= 1'b1;
+            pif_processing <= 1'b0;
         end
         else begin
             n64_pif_out         <= 1'b1;
@@ -137,9 +142,10 @@ module N64_interface_external(
             n64_rsp_in_reg      <= n64_rsp_in;
             n64_rsp_in_reg1     <= n64_rsp_in_reg;
             n64_rsp_in_reg2     <= n64_rsp_in_reg1;
-            
+            pif_processing      <= 1'b0;
             case (pif_state)
                 address_get : begin
+                    pif_processing      <= 1'b1;
                     if (pif_count != 10'd0) begin
                         pif_shift_data[11:0]    <= {pif_shift_data[10:0] ,n64_rsp_in_reg};
                         pif_count               <= pif_count - 1'd1;
@@ -152,6 +158,7 @@ module N64_interface_external(
                     end
                 end
                 decode : begin
+                    pif_processing      <= 1'b1;
                     if (pif_data_transfer_type == write_64bytes) begin  // write 64 bytes DMA
                         pif_shift_data  <= 32'd0;
                         pif_count       <= 10'd0;
@@ -174,10 +181,12 @@ module N64_interface_external(
                     end
                 end
                 read_ack : begin
+                    pif_processing      <= 1'b1;
                     n64_pif_out <= 1'b0;
                     pif_state <= read_data;
                 end
                 read_data : begin
+                    pif_processing      <= 1'b1;
                    if (pif_data_transfer_type == read_4bytes) begin
                         if (pif_count != 0) begin
                             pif_count   <= pif_count -1;
@@ -201,6 +210,7 @@ module N64_interface_external(
                     end
                 end
                 write_ark : begin
+                    pif_processing      <= 1'b1;
                     if (pif_ack_sent == 0) begin
                         n64_pif_out <= 0;
                         pif_ack_sent <= 1;
@@ -212,6 +222,7 @@ module N64_interface_external(
                     end
                 end
                 write_data : begin
+                    pif_processing      <= 1'b1;
                     if (pif_data_transfer_type == write_64bytes) begin // pif write 64B
                         if (pif_count != 512) begin
                             pif_count <= pif_count +1;
@@ -244,6 +255,7 @@ module N64_interface_external(
                     if (n64_rsp_in_reg == 0 && n64_rsp_in_reg1 == 1) begin // 3'b011 the RSP sending a request to the PIF
                         pif_state <= address_get; 
                         pif_count <= 12'd11; // 11 word address shift for the type of transfer and address in ram to start from.
+                        pif_processing      <= 1'b1;
                     end
                     pif_ack_sent <= 1'b0; // clear out for next time
                 end
