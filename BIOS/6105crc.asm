@@ -2,8 +2,18 @@
 ; It is based on the code by X-scale but converted to ASM.
 ; It has not been tested yet at this moment but it does have most of teh code down ready to be tested.
 
+; zeropage C0 is the key
+; zeropage C1 is the lut 0 or 1
+; zeropage C2 is the sgn
+; zeropage C3 is the mag
+; zeropage C4 is the mod
+; zeropage C5 is the responce
+; zeropage C6 is the challenge
+; zeropage c7/c8 the address to be read from the CRC Rom
+; zeropage c9 is the offset base address of the CRC Rom
 
-6105_crc_process_init
+
+crcinit6105
   lda #$0B
   sta $c0
   lda #$00
@@ -18,44 +28,38 @@
   sta $c9
   ldx #$00 ; clear the x Reg will be used for the respoce
   ldy #$00 ; here is the key we start with
-  lda #$C0  ; Here is the start of the CRC seek for the challange
-  sta $FC
-  lda #$27
-  sta $FD ; this is the start of where the CRC SEED will be for the 6105 code in memory so we can start working with it
-  lda #$80
-  sta $FA
-  lda #$32
-  sta $FB ; this is the location of the first address for the CRC roms
-  ;lda #$00
-  ;sta $
-  6105_crc_main_loop
-  lda [$FC],X ; we get the hig nibbles to  process
-  lsr A ; we shift 4 for the top nibble
-  lsr A
-  lsr A
-  lsr A
-  and #$0F ; and just to make sure that the nibble is only 4Bits
-  jsr 6105_crc_process
-  stx $F0
-  ldx #$00
-  lda [$FC],X
+  lda #$00  ; Here is the start of the CRC seek for the challange
+
+
+crc_main_loop
+  lda $17F0,Y ; we get the hig nibbles to  process
+  lsr  ; we shift 4 for the top nibble
+  lsr
+  lsr
+  lsr
+  AND #$0F ; and just to make sure that the nibble is only 4Bits
+  sty $C9
+  jsr crc_process_nibble
+  stx $CA
+  LDX #$00
+  ldy $C9
+  lda $17F0,y
   and #$0F
-  jsr 6105_crc_process
-  stx $F1 ; Store the first nibble at zeropage F0
-  lda $F0
-  asl A
-  asl A
-  asl A
-  asl A
-  ora $F1
-  ldx #$00
-  sta [$FC],X
-  inc $FC
-  ldx $FC
-  cpx #$FF
-  bne 6105_crc_main_loop
+  jsr crc_process_nibble
+  STX $CB ; Store the first nibble at zeropage F0
+  lda $CA
+  asl
+  asl
+  asl
+  asl
+  ora $CB
+  ldy $C9
+  STA $17F0,y
+  iny
+  cpy #$0F
+  bne crc_main_loop
   lda #$00
-  sta [$FC],X
+  sta $17FF
   rts
 
 ; zeropage C0 is the key
@@ -68,35 +72,39 @@
 ; zeropage c7/c8 the address to be read from the CRC Rom
 ; zeropage FA/FB is the base address of the CRC Rom
 
-6105_crc_process ; from here we will use the C0 zeropage locations
+crc_process_nibble ; from here we will use the C0 zeropage locations
   sta $C6
   lda $C0
-  adc #$05
+  adc #$04
   sta $C5
   ldx #$00
-responce_multi_5 ; responce = (key +5) * 5
-  adc $C5
-  inx
-  cpx $C6
-  bne responce_multi_5
+responce_multi_5 ; responce = (key +5) * Challange
+  INX
+  CPX $C6
+  bcs responce_zero
+  ADC $C5
+  jmp responce_multi_5
+responce_zero
   and #$07 ; responce & 0x07
   sta $C5
   ; key = lut [responce]
   ldx $C1
   cpx #$01
   beq lut1_key
-  lut0_key
+lut0_key
   ldx $C5
-  lda $3280,x
+  LDA $3280,x
+  sta $C0
   jmp sgn_key
-  lut1_key
+lut1_key
   ldx $C5
-  lda $3290,x
+  LDA $3290,x
+  sta $C0
 sgn_key:
   lda $C5
-  lsr A
-  lsr A
-  lsr A
+  lsr
+  lsr
+  lsr
   and #$01
   sta $C2
   ;mag check
@@ -113,17 +121,20 @@ mag_false:
   sta $c3
 
 mod_test:
-  lda #$B0
+  lda $C3
   sta $00
-  lda #$03
+  lda $03
   sta $01
   lda $00
   sec
 modulus:
-  sbc $00
+  cmp #$00
+  beq mobulus_zero
+  SBC $00
   bcs modulus
   adc $01
-  tax
+mobulus_zero
+  TAX
   cpx #$1
   bne sign_neg_1
   lda $C2
@@ -176,8 +187,9 @@ lut_check:
   rts
 LUT_NOT_TRUE:
   lda #$01
-  sta $C1
-  jmp MAINLOOP
+  STA $C1
+  ldx $C5
+  rts
 
 ;d0 is the 31:24 bits of the CRC
 ;d1 is the 23:16 bits of the CRC
@@ -193,7 +205,9 @@ CRC_CHANGE_LOOP:
   inx
   iny
   cpx #$28
-  bne MAINLOOP
+  Beq CRC_CHANGE_jump
+  JMP crc_main_loop
+CRC_CHANGE_jump
   lda #$00
   sta $17FF
   jmp CRC_CHANGE_LOOP
