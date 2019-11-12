@@ -88,7 +88,7 @@ controller_testing:
 	STA $17C3
 	LDA #$FF
 	STA $17C8
-	LDA #$01
+	LDA #$02
 	STA $17C9
 	LDA #$04
 	STA $17CA
@@ -113,7 +113,7 @@ controller_testing:
 	STA Controller_STA
 	LDA #$00
 	STA Controller_CON
-	jsr pif_process_init	
+	jsr startup_init	
 	jmp controller_testing
 	
 
@@ -222,6 +222,7 @@ crc_testing:
 	jmp crc_testing
 
 ; this is the starting code for the orginal start up ready to go
+startup_init:
 ;  jsr INT_DOWN
 ;  jsr NMI_DOWN
 ;  jsr CLEARPIFROM
@@ -273,28 +274,26 @@ NMI_UP:
 NMI_DOWN:
 	ldx #$00
 NMI_DOWN_LOOP:
-	lda #$00
-	sta N64_NMI
 	inx
 	cpx #$ff
-	bne NMI_DOWN_LOOP
+	BNE NMI_DOWN_LOOP
+	lda #$00
+	sta N64_NMI
 	rts
 
 INT_UP:
 	lda #$ff
 	sta N64_INT2
-	lda #$00
-	sta N64_SGM
-	jmp pif_process_init
+	rts
 
 INT_DOWN:
 	ldx #$00
 INT_DOWN_LOOP:
+	inx
+	cpx #$1f
+	BNE INT_DOWN_LOOP
 	lda #$00
 	sta N64_INT2
-	inx
-	cpx #$20
-	bne INT_DOWN_LOOP
 	rts
 
 
@@ -349,28 +348,33 @@ test_crc_change:
 test_DMA_int: 
 	cpx #$08
 	bne test_clear_rom
+	JSR pif_process_init
 	JSR INT_UP ; this will do a interupt after processing the code
+	JSR INT_DOWN
 	
 test_clear_rom:
 	CPX #$10
 	Bne test_clear_ram
 	JSR CLEARPIFROM
-	
+	JSR pif_process_init
+
 test_clear_ram:  
 	cpx #$C0
 	BNE test_crc_update
 	JSR CLEARPIFRAM
-	
+	JSR pif_process_init
+
 test_crc_update:  
 	cpx #$30
 	Bne test_pif_process 
 	JSR CRC_UPDATE  ; This is for a reboot of the CRC in the system
-	
+	JSR pif_process_init
+
 test_pif_process:  
 	cpx #$01
 	BNE clear_process
 	JSR pif_process_init
-	
+
 clear_process:  
 	txa        ; this is the ready signal for the PIF
 	sta N64_SGM
@@ -712,10 +716,10 @@ CRC_INIT_BOOTUP_LOOP:
 	sta N64_SGM
 	rts
 
-; zeropage 00 low address reading on PifRam
-; zeropage 01 high
-; zeropage 02 channels to worked on #$10 -- Joy 1	#$20 -- Joy 2	#$30 -- Joy 3	#$40 -- Joy4	#$50 -- EPPROM
-; zeropage 03 save the current Y and this will be the next Y on the main loop
+; zeropage 00 y offset of reading on PifRam
+; zeropage 01 current channel
+; zeropage 02 channels to worked on 	#$10 -- Joy 1	#$13 -- Joy 2	#$16 -- Joy 3	#$19 -- Joy4	#$1C -- EPPROM
+; zeropage 03 save the current Y offset and this will be the next Y on the main loop
 ; zeropage 04 
 ; zeropage 05 controller processing for controller as a bit location 	#$01 -- Joy 1	#$02 -- Joy 2	#$04 -- Joy 3	#$08 -- Joy4
 ; zeropage 0A	Current Command
@@ -724,85 +728,114 @@ CRC_INIT_BOOTUP_LOOP:
 ; zeropage 10 channel 1 cmd
 ; zeropage 11 channel 1 send data
 ; zeropage 12 channel 1 receive data
-; zeropage 20 channel 2 cmd
-; zeropage 21 channel 2 send data
-; zeropage 22 channel 2 receive data
-; zeropage 30 channel 3 cmd
-; zeropage 31 channel 3 send data
-; zeropage 32 channel 3 receive data
-; zeropage 40 channel 4 cmd
-; zeropage 41 channel 4 send data
-; zeropage 42 channel 4 receive data
-; zeropage 50 channel 5 cmd
-; zeropage 51 channel 5 send data
-; zeropage 52 channel 5 receive data
+; zeropage 13 channel 2 cmd
+; zeropage 14 channel 2 send data
+; zeropage 15 channel 2 receive data
+; zeropage 16 channel 3 cmd
+; zeropage 17 channel 3 send data
+; zeropage 18 channel 3 receive data
+; zeropage 19 channel 4 cmd
+; zeropage 1A channel 4 send data
+; zeropage 1B channel 4 receive data
+; zeropage 1C channel 5 cmd
+; zeropage 1D channel 5 send data
+; zeropage 1E channel 5 receive data
 
 pif_process_init:
 	LDA #$80
 	STA N64_SGM
-	lda #$17
-	sta $01
-	lda #$c0
+	LDA #$00
 	sta $00
-	lda #$00
-	sta $03
+	sta $01
+	STA $03
+	STA $04
+	STA $05
+	STA $0A
+	STA $0B
+	STA $0C
 	sta $10
 	sta $11
 	sta $12
-	sta $20
-	sta $21
-	sta $22
-	sta $30
-	sta $31
-	sta $32
-	sta $40
-	sta $41
-	sta $42
-	sta $50
-	sta $51
-	STA $52
+	sta $13
+	sta $14
+	sta $15
+	sta $16
+	sta $17
+	sta $18
+	sta $19
+	sta $1A
+	sta $1B
+	sta $1C
+	sta $1D
+	STA $1E
 	LDA #$10
-	STA $02
+	STA $02 ; for the channells ;-)
 	LDA #$00
-	STY $00
+	LDY #$00
+	LDX #$00
 pif_looping:
+	STY $00
 	CPY #$ff
 	BNE pif_finish_not	
 	JMP pif_finish
-	
 pif_finish_not:	
-	STY $03
 	ldx $17C0,Y
-	CPX #$fe
-	bne test_finished1
+	CPX #$fd
+	bne test_1_finished
+	JMP pif_finish
+test_1_finished:	
+	CPX #$FE
+	bne test_2_finished
 	jmp pif_finish
-test_finished1:	
-	cpx #$fd
-	BNE test_finished2
-	JMP pif_finish	
-test_finished2:	
-	cpx #$00
+test_2_finished:
+	CPX #$00
 	bne test_channel_check
-	jsr add_channel
+	JSR add_channel
+	LDY $00
+	ldx $17C0,Y
 test_channel_check:
-	lda #$00
 	CPX #$ff
 	BNE test_pif_next_address
-	STA $03
-	JSR Process_controller
+	LDY $00
 	INY
 	LDA $17C0,Y
+	sta $0A
 	INY
-	ADC $17C0,Y
-	ADC $03
-	adc #$02
+	LDA $17C0,Y
+	STA $0B
+	INY
+	LDA $17C0,Y
+	STA $0C
+	STY $00 ; Store the offset for calculation
+	JSR Process_controller
+	LDA $0B
+	ADC $0C
+	ADC $00
+	STA $00	; this is adding to the next offset
+	DEC $00
+	LDY $02 ; place this data in the correct channel
+	LDA $0A
+	STA $00,Y
+	INY
+	LDA $0B
+	STA $00,Y
+	INY
+	LDA $0C
+	STA $00,Y
+	INY
+	LDA $02
+	ADC #$03	
+	STY $02
+	inc $01
 test_pif_next_address:	
-	ldy $03
+	ldy $00
 	JMP pif_looping
 	
 
 
 Process_controller
+
+	rts ; this is to test the pif decoding process
 	ldx #$00
 	INY
 	LDA ($02,X)
@@ -963,10 +996,7 @@ Controller_update_channel_access:
 		
 
 add_channel:
-	lda $11
-	adc #$01
-	sta $11
-	tax
+	inc $05
 	CPX #$05
 	bne test_eprom_channel
 	JSR eeprom_init
@@ -986,8 +1016,10 @@ pif_finish:
 	LDA #$ff
 	sta $03
 	lda #$00
-	sta N64_SGM
-	rts
+	STA N64_SGM
+	LDX #$FF
+	TSX
+	jmp MAINLOOP
 
 ;controller_init:
  ; lda $17C0,Y
