@@ -36,6 +36,8 @@ PIF_RAM           = $1000
 N64_RAM           = $17C0
 N64_SGM           = $17FF
 
+N64_ALLOW_PROCESSING = $32CA
+
 
 ; Set zeropage locations
 
@@ -73,19 +75,18 @@ N64_SGM           = $17FF
 ;d2 is the 15:8  bits of the CRC being used
 ;d3 is the 7:0   bits of the CRC being used
 
-;f0-ff is mamory transfers
-
-;	jmp PIF_ROM2RAM
+;f0-ff is memory transfers
+	
 
 controller_testing:
-	LDA #$FF
-	STA $17C0
-	LDA #$01
-	STA $17C1
-	LDA #$04
-	STA $17C2
-	LDA #$01
-	STA $17C3
+;	LDA #$FF
+;	STA $17C0
+;	LDA #$01
+;	STA $17C1
+;	LDA #$04
+;	STA $17C2
+;	LDA #$01
+;	STA $17C3
 	LDA #$FF
 	STA $17C8
 	LDA #$02
@@ -113,7 +114,7 @@ controller_testing:
 	STA Controller_STA
 	LDA #$00
 	STA Controller_CON
-	jsr startup_init	
+	jsr pif_process_init	
 	jmp controller_testing
 	
 
@@ -223,23 +224,76 @@ crc_testing:
 
 ; this is the starting code for the orginal start up ready to go
 startup_init:
-;  jsr INT_DOWN
-;  jsr NMI_DOWN
-;  jsr CLEARPIFROM
-;  jsr PIF_ROM2RAM
-;  JSR NMI_UP
-;  lda #$80
-;  sta N64_SGM
-;  JSR CRC_INIT_BOOTUP
-  
-;  lda #$80
-;  sta N64_SGM
+	LDA $FF
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can not process data
+	jsr INT_DOWN
+	jsr NMI_DOWN
+	jsr CLEARPIFROM
+	JSR PIF_ROM2RAM
+	LDA $00
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can process data
+	JSR NMI_UP
+	JSR CRC_INIT_BOOTUP
+	
+	lda #$80
+	sta N64_SGM
 
 
 MAINLOOP:
 	jsr CHECKSEG
-	jsr CHECK_RESET_BUTTON
-	jmp MAINLOOP
+	JSR CHECK_RESET_BUTTON
+	jsr SYSTEM_REBOOT_CHECK
+	JMP MAINLOOP
+	
+	
+SYSTEM_REBOOT_CHECK: ; This is to check that the words DEADDEAD are in the PIFRAM
+	LDY $00
+	LDA #$00
+	STA $E1
+SYSTEM_REBOOT_LOOP:
+	LDA $17C0,Y
+	CMP #$DE
+	BNE SYSTEM_REBOOT_NEXT_ADDRESS
+	INY
+	LDA $17C0,Y
+	CMP #$AD
+	BNE SYSTEM_REBOOT_NEXT_ADDRESS
+	INY
+	LDA $17C0,Y
+	CMP #$DE
+	BNE SYSTEM_REBOOT_NEXT_ADDRESS
+	INY
+	LDA $17C0,Y
+	CMP #$AD
+	BNE SYSTEM_REBOOT_NEXT_ADDRESS
+	JSR SYSTEM_REBOOT
+SYSTEM_REBOOT_NEXT_ADDRESS:
+	LDA $E1
+	ADC #$08
+	STA $E1
+	TAY
+	CPY #$40
+	BCC SYSTEM_REBOOT_LOOP
+	rts
+
+SYSTEM_REBOOT:
+	; This will be for software reboots
+	LDA $FF
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can not process data
+	JSR NMI_DOWN
+	JSR CLEARPIFROM
+	JSR PIF_ROM2RAM
+	JSR CRC_UPDATE
+	LDA $00
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can process data
+	LDA #$00
+	STA N64_SGM
+	JSR CRC_INIT_BOOTUP_LOOP
+	LDA #$80
+	STA N64_SGM
+	LDA #$40
+	STA $E1
+	rts	
 
 PIF_ROM2RAM:
 	lda #$00 ;set our source memory address to copy from, $2000
@@ -328,12 +382,19 @@ CLEARPIFRAMLOOP:
 
 
 CHECKSEG:
-	ldx N64_SGM
+	LDX N64_SGM
+	STX $E0
 	cpx #$00
+	BNE PROCESSING_PIF_SEGMA
+	RTS ; we have to make sure that if it is 00 then we can move it on
+PROCESSING_PIF_SEGMA	
+	cpx #$80
 	BNE test_crc_challange_system
 	rts ; we have to make sure that if it is 00 then we can move it on
   
 test_crc_challange_system:
+	LDA $FF
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can not process data
 	LDA #$80
 	sta N64_SGM
 	cpx #$02
@@ -356,17 +417,16 @@ test_clear_rom:
 	CPX #$10
 	Bne test_clear_ram
 	JSR CLEARPIFROM
-	JSR pif_process_init
-
+	
 test_clear_ram:  
 	cpx #$C0
 	BNE test_crc_update
 	JSR CLEARPIFRAM
-	JSR pif_process_init
-
+	
 test_crc_update:  
 	cpx #$30
-	Bne test_pif_process 
+	BNE test_pif_process 
+	
 	JSR CRC_UPDATE  ; This is for a reboot of the CRC in the system
 	JSR pif_process_init
 
@@ -376,8 +436,10 @@ test_pif_process:
 	JSR pif_process_init
 
 clear_process:  
-	txa        ; this is the ready signal for the PIF
-	sta N64_SGM
+	LDA $00
+	STA N64_ALLOW_PROCESSING ; We make sure the PIF can process data
+	LDA $E0     ; this is the ready signal for the PIF
+	STA N64_SGM
 	rts
 
 ; This is the 6502 impermintation of the N64 CRC 6/7105 challange and responce process
@@ -586,9 +648,10 @@ CRC_CHANGE_LOOP:
 	sta $d0,y
 	inx
 	iny
-	cpx #$29
+	cpx #$28
 	BNE CRC_CHANGE_LOOP
-	lda #$00
+	LDA #$00
+	sta $E0
 	sta $17FF
 	rts
 
@@ -674,7 +737,7 @@ CRC_UPDATE_LOOP:
 	bne CRC_UPDATE_LOOP
 	lda #$00
 	sta N64_SGM
-	jmp CRC_INIT_BOOTUP_LOOP
+	rts 
 
 
   ;d0 is the 31:24 bits of the CRC being used
@@ -712,8 +775,6 @@ CRC_INIT_BOOTUP_LOOP:
 	ldx N64_PIF_ADDRESS
 	cpx #$FC
 	bcc CRC_INIT_BOOTUP_LOOP
-	lda #$80
-	sta N64_SGM
 	rts
 
 ; zeropage 00 y offset of reading on PifRam
@@ -742,6 +803,8 @@ CRC_INIT_BOOTUP_LOOP:
 ; zeropage 1E channel 5 receive data
 
 pif_process_init:
+	
+	
 	LDA #$80
 	STA N64_SGM
 	LDA #$00
@@ -777,22 +840,26 @@ pif_looping:
 	STY $00
 	CPY #$ff
 	BNE pif_finish_not	
-	JMP pif_finish
+	JSR pif_finish
+	rts
 pif_finish_not:	
 	ldx $17C0,Y
 	CPX #$fd
 	bne test_1_finished
-	JMP pif_finish
+	JSR pif_finish
+	jmp test_pif_next_address
 test_1_finished:	
 	CPX #$FE
 	bne test_2_finished
-	jmp pif_finish
+	JSR pif_finish
+	jmp test_pif_next_address
 test_2_finished:
 	CPX #$00
 	bne test_channel_check
 	JSR add_channel
 	LDY $00
-	ldx $17C0,Y
+	LDX $17C0,Y
+	jmp test_pif_next_address
 test_channel_check:
 	CPX #$ff
 	BNE test_pif_next_address
@@ -831,8 +898,6 @@ test_pif_next_address:
 	ldy $00
 	JMP pif_looping
 	
-
-
 Process_controller
 
 	rts ; this is to test the pif decoding process
@@ -996,30 +1061,33 @@ Controller_update_channel_access:
 		
 
 add_channel:
-	inc $05
-	CPX #$05
+	INC $00
+	INC $05
+
+	LDX $05
+	CPX #$04
 	bne test_eprom_channel
 	JSR eeprom_init
 test_eprom_channel:
-	CPX #$06
-	BNE test_finish_channel
-	pla
+	CPX #$05
+	BCC test_finish_channel
 	jmp pif_finish
 test_finish_channel:
-	lda $17C0,Y
-	tax
-	cpx #$FF
 	; beq pif_process
+	INC $02
+	INC $02
+	INC $02
 	rts
 
 pif_finish:
 	LDA #$ff
-	sta $03
-	lda #$00
+	sta $00
+	LDA #$00
+	sta $E0
 	STA N64_SGM
 	LDX #$FF
 	TSX
-	jmp MAINLOOP
+	rts
 
 ;controller_init:
  ; lda $17C0,Y

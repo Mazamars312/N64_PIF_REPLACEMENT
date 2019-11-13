@@ -36,6 +36,7 @@ module N64_interface_external(
     reg         pif_disable;
     reg [7:0]   pif_page;
     reg [7:0]   crap_write;
+    reg         wait_processing;
     
     // pif regs
     
@@ -63,6 +64,7 @@ module N64_interface_external(
             pif_disable <= 'b0;
             pif_page <= 'b0;
             crap_write <= 'b0;
+            wait_processing <= 'b0;
         end
         else begin
             cpu_data_out <= 'b0;
@@ -78,6 +80,7 @@ module N64_interface_external(
                     4'h1    : INT2 <= |{cpu_data_in};
                     4'h2    : pif_disable <= |{cpu_data_in};
                     4'h3    : pif_page <= cpu_data_in;
+                    4'h10   : wait_processing <= |{cpu_data_in};
                     default : crap_write <= 8'b0;
                 endcase
             end
@@ -92,6 +95,7 @@ module N64_interface_external(
                     4'h6    : cpu_data_out <= {8{pif_processing}};
                     4'h7    : cpu_data_out <= {1'b0, pif_interface_address[8:2]};
                     4'h8    : cpu_data_out <= {5'd0, pif_data_transfer_type};
+                    4'hA    : cpu_data_out <= {8{wait_processing}};
                     default : cpu_data_out <= crap_write;
                 endcase
             end
@@ -159,31 +163,31 @@ module N64_interface_external(
                 end
                 decode : begin
                     pif_processing      <= 1'b1;
-                    if (pif_data_transfer_type == write_64bytes) begin  // write 64 bytes DMA
+                    if (pif_data_transfer_type == write_64bytes  && ~wait_processing) begin  // write 64 bytes DMA
                         pif_shift_data  <= 32'd0;
                         pif_count       <= 10'd0;
                         pif_state       <= write_ark;
                     end
-                    if (pif_data_transfer_type == write_4bytes) begin   // write word 
+                    if (pif_data_transfer_type == write_4bytes) begin   // write word we will allow 4Bytes to be read
                         pif_shift_data  <= 32'd0;
                         pif_count       <= 10'd0;
                         pif_state       <= write_ark; 
                     end
-                    if (pif_data_transfer_type == read_4bytes) begin    // read word
+                    if (pif_data_transfer_type == read_4bytes) begin    // read word we will allow 4Bytes to be read
                         pif_shift_data  <= pif_interface_data_in;
                         pif_count       <= 10'd32;
                         pif_state       <= read_ack;
                     end
-                    if (pif_data_transfer_type == read_64bytes) begin   // read 64 bytes DMA
+                    if (pif_data_transfer_type == read_64bytes  && ~wait_processing) begin   // read 64 bytes DMA
                         pif_shift_data  <= pif_interface_data_in;
                         pif_count       <= 10'd512;
                         pif_state       <= read_ack;
                     end
                 end
                 read_ack : begin
-                    pif_processing      <= 1'b1;
-                    n64_pif_out <= 1'b0;
-                    pif_state <= read_data;
+                        pif_processing      <= 1'b1;
+                        n64_pif_out         <= 1'b0;
+                        pif_state           <= read_data;
                 end
                 read_data : begin
                     pif_processing      <= 1'b1;

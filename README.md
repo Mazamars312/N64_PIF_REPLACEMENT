@@ -89,6 +89,13 @@
     C1 - If a 0xFF is written here the INT2 on the N64 will become active, if 0x00 then INT2 is deactivate
 		C2 - if 0xFF is written then the PIF Rom is disabled from begin read by the n64
 		C3 - PIF Ram Offset - This is for future looking at where we can have this offset the PIF to allow larger rom's at start up. 8 bit banking
+    C4 - PAL SWITCH - When High the 6502 will setup the system as a PAL system
+    C5 - RESET SWITCH - When High the CPU will say the RESET button is high. I was going to make it a interupt, but then we could not do a nice debounce loop.
+    C6 - PIF_PROCESSING - This allows the 6502 see if the interface is being worked on by the N64. This is mostly used for the CRC testing.
+    C7 - PIF_ADDRESS_ACCESS - This allows the 6502 see which address is being access by the N64.
+    C8 - Allows the 6502 see what type of transfer is being done. 4 bytes or 64 bytes/dma.
+    C9 - Reserved
+    CA - This allows the 6502 to hold up the read from the N64 by blocking the read access ack. This is helpful to keep the N64 DMA wait for the 6502 to process the current ram at the moment.
 
 
 There is also a controller module that will emulate the full N64 controller. Yep a full verilog controller that I want to test to make replacement controllers. We will also look at making an ADC interface for this so we can running control sticks
