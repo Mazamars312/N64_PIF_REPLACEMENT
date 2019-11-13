@@ -76,7 +76,7 @@ N64_ALLOW_PROCESSING = $32CA
 ;d3 is the 7:0   bits of the CRC being used
 
 ;f0-ff is memory transfers
-	
+
 
 controller_testing:
 ;	LDA #$FF
@@ -88,18 +88,18 @@ controller_testing:
 ;	LDA #$01
 ;	STA $17C3
 	LDA #$FF
-	STA $17C8
+	STA $17C0
 	LDA #$02
-	STA $17C9
+	STA $17C1
 	LDA #$04
-	STA $17CA
+	STA $17C2
 	LDA #$01
-	STA $17CB
+	STA $17C3
 	LDA #$FE
-	STA $17D0
+	STA $17C8
 	LDA #$01
 	sta $17ff
-	
+
 	LDA #$00
 	STA Controller_CMD
 	LDA #$00
@@ -114,9 +114,9 @@ controller_testing:
 	STA Controller_STA
 	LDA #$00
 	STA Controller_CON
-	jsr pif_process_init	
+	jsr pif_process_init
 	jmp controller_testing
-	
+
 
 
 crc_testing:
@@ -152,7 +152,7 @@ crc_testing:
 	STA $328E
 	LDA #$09
 	STA $328F
-	
+
 	LDA #$04
 	STA $3290
 	LDA #$01
@@ -186,7 +186,7 @@ crc_testing:
 	LDA #$09
 	STA $329F
 	;8FBB1DB876B63CEC
-	
+
 	LDA #$8f
 	STA $17f0
 	LDA #$bb
@@ -219,7 +219,7 @@ crc_testing:
 	STA $17FE
 	LDA #$6b
 	STA $17FF
-	jsr crcinit6105	
+	jsr crcinit6105
 	jmp crc_testing
 
 ; this is the starting code for the orginal start up ready to go
@@ -234,7 +234,7 @@ startup_init:
 	STA N64_ALLOW_PROCESSING ; We make sure the PIF can process data
 	JSR NMI_UP
 	JSR CRC_INIT_BOOTUP
-	
+
 	lda #$80
 	sta N64_SGM
 
@@ -244,8 +244,8 @@ MAINLOOP:
 	JSR CHECK_RESET_BUTTON
 	jsr SYSTEM_REBOOT_CHECK
 	JMP MAINLOOP
-	
-	
+
+
 SYSTEM_REBOOT_CHECK: ; This is to check that the words DEADDEAD are in the PIFRAM
 	LDY $00
 	LDA #$00
@@ -293,7 +293,7 @@ SYSTEM_REBOOT:
 	STA N64_SGM
 	LDA #$40
 	STA $E1
-	rts	
+	rts
 
 PIF_ROM2RAM:
 	lda #$00 ;set our source memory address to copy from, $2000
@@ -368,10 +368,10 @@ CLEARPIFRAM:
 	STA $FE
 	ldy #$C0
 	LDA #$00
-	ldx #$00	
+	ldx #$00
 CLEARPIFRAMLOOP:
 	sta ($FD),Y ;indirect index dest memory address, starting at $00
-	INy 
+	INy
 	cpy #$00
 	bne CLEARPIFRAMLOOP ;loop until our dest goes over 255
 	inc $FE ;increment high order dest memory address, starting at $60
@@ -387,11 +387,11 @@ CHECKSEG:
 	cpx #$00
 	BNE PROCESSING_PIF_SEGMA
 	RTS ; we have to make sure that if it is 00 then we can move it on
-PROCESSING_PIF_SEGMA	
+PROCESSING_PIF_SEGMA
 	cpx #$80
 	BNE test_crc_challange_system
 	rts ; we have to make sure that if it is 00 then we can move it on
-  
+
 test_crc_challange_system:
 	LDA $FF
 	STA N64_ALLOW_PROCESSING ; We make sure the PIF can not process data
@@ -400,42 +400,42 @@ test_crc_challange_system:
 	cpx #$02
 	BNE test_crc_change
 	jsr crcinit6105
-  
-test_crc_change: 
+
+test_crc_change:
 	cpx #$40
 	Bne test_DMA_int
 	JSR CRC_CHANGE  ; This is for changing the CRC. write the CRC in offset 0x24 of 0x17c0 to place this in the ram Temp files
-	
-test_DMA_int: 
+
+test_DMA_int:
 	cpx #$08
 	bne test_clear_rom
 	JSR pif_process_init
 	JSR INT_UP ; this will do a interupt after processing the code
 	JSR INT_DOWN
-	
+
 test_clear_rom:
 	CPX #$10
 	Bne test_clear_ram
 	JSR CLEARPIFROM
-	
-test_clear_ram:  
+
+test_clear_ram:
 	cpx #$C0
 	BNE test_crc_update
 	JSR CLEARPIFRAM
-	
-test_crc_update:  
+
+test_crc_update:
 	cpx #$30
-	BNE test_pif_process 
-	
+	BNE test_pif_process
+
 	JSR CRC_UPDATE  ; This is for a reboot of the CRC in the system
 	JSR pif_process_init
 
-test_pif_process:  
+test_pif_process:
 	cpx #$01
 	BNE clear_process
 	JSR pif_process_init
 
-clear_process:  
+clear_process:
 	LDA $00
 	STA N64_ALLOW_PROCESSING ; We make sure the PIF can process data
 	LDA $E0     ; this is the ready signal for the PIF
@@ -478,9 +478,9 @@ crcinit6105
 crc_main_loop
 	lda $17F0,Y ; we get the hig nibbles to  process
 	lsr  ; we shift 4 for the top nibble
-	lsr 
-	lsr 
-	lsr 
+	lsr
+	lsr
+	lsr
 	AND #$0F ; and just to make sure that the nibble is only 4Bits
 	sty $C9
 	jsr crc_process_nibble
@@ -492,10 +492,10 @@ crc_main_loop
 	jsr crc_process_nibble
 	STX $CB ; Store the first nibble at zeropage F0
 	lda $CA
-	asl 
-	asl 
-	asl 
-	asl 
+	asl
+	asl
+	asl
+	asl
 	ora $CB
 	ldy $C9
 	STA $17F0,y
@@ -546,9 +546,9 @@ lut1_key
 	sta $C0
 sgn_key:
 	lda $C5
-	lsr 
-	lsr 
-	lsr 
+	lsr
+	lsr
+	lsr
 	and #$01
 	sta $C2
 	;mag check
@@ -720,7 +720,7 @@ debounce_completed:
 	lda #$FF
 	STA N64_NMI
 	JMP CRC_INIT_BOOTUP
-	
+
 CRC_UPDATE:		; This is for changing the CRC  using the 30 code and will reboot the core
 	ldx #$00
 	LDY #$24
@@ -737,7 +737,7 @@ CRC_UPDATE_LOOP:
 	bne CRC_UPDATE_LOOP
 	lda #$00
 	sta N64_SGM
-	rts 
+	rts
 
 
   ;d0 is the 31:24 bits of the CRC being used
@@ -779,9 +779,9 @@ CRC_INIT_BOOTUP_LOOP:
 
 ; zeropage 00 y offset of reading on PifRam
 ; zeropage 01 current channel
-; zeropage 02 channels to worked on 	#$10 -- Joy 1	#$13 -- Joy 2	#$16 -- Joy 3	#$19 -- Joy4	#$1C -- EPPROM
+; zeropage 02 channels memory location to worked on 	#$10 -- Joy 1	#$13 -- Joy 2	#$16 -- Joy 3	#$19 -- Joy4	#$1C -- EPPROM
 ; zeropage 03 save the current Y offset and this will be the next Y on the main loop
-; zeropage 04 
+; zeropage 04
 ; zeropage 05 controller processing for controller as a bit location 	#$01 -- Joy 1	#$02 -- Joy 2	#$04 -- Joy 3	#$08 -- Joy4
 ; zeropage 0A	Current Command
 ; zeropage 0B	Current Receive bytes
@@ -802,9 +802,15 @@ CRC_INIT_BOOTUP_LOOP:
 ; zeropage 1D channel 5 send data
 ; zeropage 1E channel 5 receive data
 
+PIF_FINISH:
+	LDA #$ff
+	sta $00
+	LDA #$00
+	sta $E0
+	STA N64_SGM
+	rts
+
 pif_process_init:
-	
-	
 	LDA #$80
 	STA N64_SGM
 	LDA #$00
@@ -836,107 +842,149 @@ pif_process_init:
 	LDA #$00
 	LDY #$00
 	LDX #$00
-pif_looping:
-	STY $00
-	CPY #$ff
-	BNE pif_finish_not	
-	JSR pif_finish
-	rts
-pif_finish_not:	
-	ldx $17C0,Y
-	CPX #$fd
-	bne test_1_finished
-	JSR pif_finish
-	jmp test_pif_next_address
-test_1_finished:	
+PIF_START_LOOP:	; THIS IS TO CHECK THAT WE HAVE REACHED THE END THE OF THE PIF RAM
+	LDY $00
+	CPY #$FF
+	BNE PIF_MAIN_LOOP
+	LDA $01
+	CMP #$06
+	BCS PIF_MAIN_LOOP
+	JMP PIF_FINISH
+PIF_MAIN_LOOP: 
+	LDA $17C0,Y
+	TAX
 	CPX #$FE
-	bne test_2_finished
-	JSR pif_finish
-	jmp test_pif_next_address
-test_2_finished:
+	BNE FINISHED_PIF_PROCESS ; CHECK FOR END OF WHAT TO PROCESS ON THE PIF RAM
+	JMP PIF_FINISH
+FINISHED_PIF_PROCESS:
 	CPX #$00
-	bne test_channel_check
-	JSR add_channel
-	LDY $00
-	LDX $17C0,Y
-	jmp test_pif_next_address
-test_channel_check:
-	CPX #$ff
-	BNE test_pif_next_address
-	LDY $00
+	BNE CHANNEL_CHECKED ; CHECK FOR INCREASE OF CHANNEL PROCESSING
+CHANNEL_INCREASE:	
+	INC $00
+	INC $01
 	INY
-	LDA $17C0,Y
-	sta $0A
-	INY
-	LDA $17C0,Y
-	STA $0B
-	INY
-	LDA $17C0,Y
-	STA $0C
-	STY $00 ; Store the offset for calculation
-	JSR Process_controller
-	LDA $0B
-	ADC $0C
-	ADC $00
-	STA $00	; this is adding to the next offset
-	DEC $00
-	LDY $02 ; place this data in the correct channel
-	LDA $0A
-	STA $00,Y
-	INY
-	LDA $0B
-	STA $00,Y
-	INY
-	LDA $0C
-	STA $00,Y
-	INY
+	CPY #$06
+	BNE CHANNEL_NOT_END
+	JMP PIF_FINISH
+CHANNEL_NOT_END:	
 	LDA $02
-	ADC #$03	
-	STY $02
-	inc $01
-test_pif_next_address:	
-	ldy $00
-	JMP pif_looping
+	ADC #$03
+	STA $02
+	LDA $17C0,Y
+	TAX
+	CPX #$00
+	BEQ CHANNEL_INCREASE	
+CHANNEL_CHECKED:
+	CPX #$FF
+	BEQ JOY_EEPROM_TEST
+	JMP PIF_FINISH
+JOY_EEPROM_TEST:
+	LDA $01
+	CMP #$04
+	BNE Process_controller
+	JMP EPPROM_PROCESS	
 	
+	
+;	STY $00
+;	CPY #$ff
+;	BNE pif_finish_not
+;	JSR pif_finish
+;	rts
+;pif_finish_not:
+;	ldx $17C0,Y
+;	CPX #$fd
+;	bne test_1_finished
+;	JSR pif_finish
+;	jmp test_pif_next_address
+;test_1_finished:
+;	CPX #$FE
+;	bne test_2_finished
+;	JSR pif_finish
+;	jmp test_pif_next_address
+;test_2_finished:
+;	CPX #$00
+;	bne test_channel_check
+;	JSR add_channel
+;	LDY $00
+;	LDX $17C0,Y
+;	jmp test_pif_next_address
+;test_channel_check:
+;	CPX #$ff
+;	BNE test_pif_next_address
+;	LDY $00
+;	INY
+;	LDA $17C0,Y
+;	sta $0A
+;	INY
+;	LDA $17C0,Y
+;	STA $0B
+;	INY
+;	LDA $17C0,Y
+;	STA $0C
+;	STY $00 ; Store the offset for calculation
+;	JSR Process_controller
+;	LDA $0B
+;	ADC $0C
+;	ADC $00
+;	STA $00	; this is adding to the next offset
+;	DEC $00
+;	LDY $02 ; place this data in the correct channel
+;	LDA $0A
+;	STA $00,Y
+;	INY
+;	LDA $0B
+;	STA $00,Y
+;	INY
+;	LDA $0C
+;	STA $00,Y
+;	INY
+;	LDA $02
+;	ADC #$03
+;	STY $02
+;	inc $01
+;test_pif_next_address:
+;	ldy $00
+;	JMP pif_looping
+
 Process_controller
 
-	rts ; this is to test the pif decoding process
+	JMP PIF_START_LOOP ; this is to test the pif decoding process
 	ldx #$00
 	INY
 	LDA ($02,X)
-	CPX #$00
+	CMP #$00
 	BNE Test_read_buttons
-	jsr Controller_status
+	JMP Controller_status
 Test_read_buttons:
 	LDX $02
-	CPX #$01
+	CMP #$01
 	BNE Test_read_mempak
-	jsr Controller_read_buttons
-Test_read_mempak:	
+	JMP Controller_read_buttons
+Test_read_mempak:
 	LDX $02
 	CPX #$02
 	BNE Test_Controller_write_mempak
-	jsr Controller_read_buttons
+	JMP Controller_read_buttons
 Test_Controller_write_mempak:
 	LDX $02
 	CPX #$03
 	BNE Test_Controller_reset_command
-	jsr Controller_write_mempak
+	JMP Controller_write_mempak
 Test_Controller_reset_command:
 	LDX $02
 	CPX #$04
 	BNE Test_Controller_finish_processing
-	JSR Controller_reset_cmd
+	JMP Controller_reset_cmd
 Test_Controller_finish_processing:
 	;need to check what address is the next channel
 	LDA #$10 ; We increase the channel for controllers
 	ADC $02
 	sta $02
-	rts
-	
+	JMP PIF_START_LOOP
 
 
-	
+
+
 	;Controller_CMD    = $32A0
 	;Controller_LOA    = $32A1
 	;Controller_HIA    = $32A2
@@ -944,84 +992,90 @@ Test_Controller_finish_processing:
 	;Controller_RED    = $32A4
 	;Controller_STA    = $32A5
 	;Controller_CON    = $32A6
-	
+
 Controller_status:
+	RTS
 	ldy #$00
 	LDA $00
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
-	sta Controller_HIA	
+	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
 	jsr Controller_update_channel_access
-	rts
-	
+	JMP Test_Controller_finish_processing
+
 
 Controller_read_buttons:
+	RTS
 	ldy #$00
 	LDA $01
 	STA Controller_CMD
-	LDA #$00	
+	LDA #$00
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
 	jsr Controller_update_channel_access
-	rts
+	JMP Test_Controller_finish_processing
 
 Controller_read_mempak:
+	RTS
 	ldy #$00
 	LDA $02
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
-	sta Controller_HIA	
+	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	jsr Controller_write_fifo
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
 	jsr Controller_update_channel_access
-	rts
+	JMP Test_Controller_finish_processing
 
 
 Controller_write_mempak:
+	RTS
 	ldy #$00
 	LDA $03
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
-	sta Controller_HIA	
+	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
 	jsr Controller_update_channel_access
-	rts
+	JMP PIF_FINISH
 
 
 Controller_reset_cmd:
+	RTS
 	ldy #$00
 	LDA $ff
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
-	sta Controller_HIA	
+	lda #$00
+	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_update_channel_access
-	rts
-	
-; here are all the commands to the controller_system	
+	JMP PIF_FINISH
+
+; here are all the commands to the controller_system
 Send_conntroller_start_cmd:
 	LDX $02
 	CPX $01
 	bne test_joy2
 	LDA #$01
-test_joy2:	
+test_joy2:
 	CPX $02
 	bne test_joy3
 	LDA #$02
-test_joy3:	
+test_joy3:
 	CPX $03
 	bne test_joy4
 	LDA #$04
@@ -1029,14 +1083,14 @@ test_joy4:
 	LDA #$08
 	STA $05
 	sta Controller_CON
-	rts	
+	rts
 
 Controller_wait_completed:
 	LDX Controller_STA
 	CPX #$7F
-	BCS Controller_wait_completed	
+	BCS Controller_wait_completed
 	RTS
-	
+
 Controller_read_fifo:
 	LDY #$02
 	LDA $02,Y
@@ -1046,56 +1100,25 @@ Controller_read_fifo_loop:
 	sta ($00,X)
 	dex
 	cpx #$00
-	bne Controller_read_fifo_loop	
+	bne Controller_read_fifo_loop
 	RTS
-	
+
 Controller_write_fifo:
 
 	RTS
-		
-	
+
+
 Controller_update_channel_access:
-	
+
 	RTS
-		
-		
 
-add_channel:
-	INC $00
-	INC $05
 
-	LDX $05
-	CPX #$04
-	bne test_eprom_channel
-	JSR eeprom_init
-test_eprom_channel:
-	CPX #$05
-	BCC test_finish_channel
-	jmp pif_finish
-test_finish_channel:
-	; beq pif_process
-	INC $02
-	INC $02
-	INC $02
-	rts
 
-pif_finish:
-	LDA #$ff
-	sta $00
-	LDA #$00
-	sta $E0
-	STA N64_SGM
-	LDX #$FF
-	TSX
-	rts
 
 ;controller_init:
  ; lda $17C0,Y
 ;  sta
 
-eeprom_init:
+EPPROM_PROCESS:
 
-	rts
-
-
-
+	JMP PIF_START_LOOP
