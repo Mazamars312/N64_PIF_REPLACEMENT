@@ -225,10 +225,10 @@ module N64_PIF_TOP(
     cpu6502 cpu6502( 
         .clk        (clk), 
         .reset      (~reset_l), 
-        .AB     (address), 
+        .AB         (address), 
         .DI         (cpu_data_in), 
-        .DO     (cpu_data_out), 
-        .WE     (cpu_write), 
+        .DO         (cpu_data_out), 
+        .WE         (cpu_write), 
         .IRQ        (reset_button), 
  
         .NMI        (1'b0), 

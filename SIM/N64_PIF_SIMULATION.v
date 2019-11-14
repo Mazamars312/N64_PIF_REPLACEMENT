@@ -24,7 +24,7 @@ module N64_PIF_SIMULATION(
 
     );
     
-    reg     n64_clk, n64_rsp; 
+    wire    n64_clk, n64_rsp; 
     wire    n64_pif;
     
     reg     clk;
@@ -41,11 +41,36 @@ module N64_PIF_SIMULATION(
     wire    INT2;
     wire    PAL_NTSC = 1'b0;
     
+    reg cbus_read_enable;                      // enable cbus read mux
+    reg cbus_write_enable;                     // enable cbus tristate drivers
+    reg [1:0] cbus_select;    // cbus data select
+    reg [2:0] cbus_command;  // cbus data type
+    reg dma_start;                             // first dbus word flag
+    reg dbus_enable;                           // enable dbus tristate drivers
+    reg dma_grant;                             // DMA request granted
+    reg read_grant;                            // read request granted
+    
+    wire dma_request;                          // request a DMA cycle
+    wire read_request;                         // request a read response cycle
+    wire interrupt;                            // SI interrupt source
+    
+    wire [31:0] cbus_data;        // IO bus
+    wire [63:0] dbus_data;        // DMA bus
+    
     initial begin
         clk <= 'b0;
-        n64_clk <= 'b0;
+        
+        cbus_read_enable <= 'b0;                      // enable cbus read mux
+        cbus_write_enable <= 'b0;                     // enable cbus tristate drivers
+        cbus_select <= 'b0;                           // cbus data select
+        cbus_command <= 'b0;                          // cbus data type
+        dma_start <= 'b0;                             // first dbus word flag
+        dbus_enable <= 'b0;                           // enable dbus tristate drivers
+        dma_grant <= 'b0;                             // DMA request granted
+        read_grant <= 'b0;                            // read request granted
+        
         reset_l <= 'b1;
-        n64_rsp <= 'b0;
+  
         #4 reset_l <= 'b0;
 
         #10 reset_l <= 'b1;
@@ -58,10 +83,7 @@ module N64_PIF_SIMULATION(
     end
     
     
-    always begin
-      #20 n64_clk = ~n64_clk;
-    end
-    
+
     
     N64_PIF_TOP N64_PIF_TOP(
     .n64_clk    (n64_clk),
@@ -104,5 +126,30 @@ module N64_PIF_SIMULATION(
 	.mem_rumble(1'b0),
 	.out(joy1)
 );
+
+
+
+
+
+si si(
+    .clk (clk), 
+    .reset_l(reset_l),
+    .cbus_read_enable(), 
+    .cbus_write_enable(), 
+    .cbus_select(), 
+    .cbus_command(),
+    .dma_start(),  
+    .dbus_enable(), 
+    .dma_grant(), 
+    .read_grant(), 
+    .pif_rsp(n64_pif),
+    .dma_request(), 
+    .read_request(), 
+    .interrupt(), 
+    .pif_cmd(n64_rsp), 
+    .pif_clk(n64_clk),
+    .cbus_data(), 
+    .dbus_data()
+    );
     
 endmodule

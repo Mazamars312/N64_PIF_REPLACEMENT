@@ -285,13 +285,13 @@ module pif_rom(
 	
 	always @* begin
 	   case(temp_address)
-	       3'b000  : q_a <= temp_data[ 7: 0];
-	       3'b001  : q_a <= temp_data[15: 8];
-	       3'b010  : q_a <= temp_data[23:16];
-	       3'b011  : q_a <= temp_data[31:24];
-	       3'b100  : q_a <= temp_data[39:32];
-	       3'b101  : q_a <= temp_data[47:40];
-	       3'b110  : q_a <= temp_data[55:48];
+	       3'b011  : q_a <= temp_data[ 7: 0];
+	       3'b010  : q_a <= temp_data[15: 8];
+	       3'b001  : q_a <= temp_data[23:16];
+	       3'b000  : q_a <= temp_data[31:24];
+	       3'b111  : q_a <= temp_data[39:32];
+	       3'b110  : q_a <= temp_data[47:40];
+	       3'b101  : q_a <= temp_data[55:48];
 	       default : q_a <= temp_data[63:56];
 	   endcase
 	end

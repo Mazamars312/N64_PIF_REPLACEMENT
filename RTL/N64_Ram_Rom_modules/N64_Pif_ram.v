@@ -36,18 +36,18 @@ module N64_pif_ram(
 	
 	always @* begin
         case (temp_a_address[1:0])
-			2'b00 	: q_a <= temp_a_data[ 7: 0];
-			2'b01 	: q_a <= temp_a_data[15: 8];
-			2'b10 	: q_a <= temp_a_data[23:16];
+			2'b11 	: q_a <= temp_a_data[ 7: 0];
+			2'b10 	: q_a <= temp_a_data[15: 8];
+			2'b01 	: q_a <= temp_a_data[23:16];
 			default	: q_a <= temp_a_data[31:24];
 		endcase
     end
 
 	always @(posedge clka) begin
-		if(wren_a && (address_a[1:0] == 2'b00)) mem[address_a[10:2]][ 7: 0] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b01)) mem[address_a[10:2]][15: 8] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b10)) mem[address_a[10:2]][23:16] <= data_a;
-		if(wren_a && (address_a[1:0] == 2'b11)) mem[address_a[10:2]][31:24] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b11)) mem[address_a[10:2]][ 7: 0] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b10)) mem[address_a[10:2]][15: 8] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b01)) mem[address_a[10:2]][23:16] <= data_a;
+		if(wren_a && (address_a[1:0] == 2'b00)) mem[address_a[10:2]][31:24] <= data_a;
         
 		temp_a_data <= mem[address_a[10:2]];
 	end
