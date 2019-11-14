@@ -41,7 +41,6 @@ module N64_interface_external(
     // pif regs
     
     reg [3:0]   pif_state;
-    reg [8:0]   pif_address;
     reg [1:0]   pif_data_transfer_type;
     reg [31:0]  pif_shift_data;
     reg         pif_ack_sent;
@@ -135,10 +134,12 @@ module N64_interface_external(
             pif_data_transfer_type  <= 'b0;
             pif_interface_address   <= 'b0;
             pif_interface_wren      <= 'b0;
-            n64_rsp_in_reg     <= 1'b1;
-            n64_rsp_in_reg1   <= 1'b1;
-            n64_rsp_in_reg2   <= 1'b1;
-            pif_processing <= 1'b0;
+            n64_rsp_in_reg          <= 'b1;
+            n64_rsp_in_reg1         <= 'b1;
+            n64_rsp_in_reg2         <= 'b1;
+            pif_processing          <= 'b0;
+            pif_interface_data_out  <= 'b0;
+            pif_count               <= 'b0;
         end
         else begin
             n64_pif_out         <= 1'b1;
@@ -194,7 +195,7 @@ module N64_interface_external(
                    if (pif_data_transfer_type == read_4bytes) begin
                         if (pif_count != 0) begin
                             pif_count   <= pif_count -1;
-                            n64_pif_out <= pif_interface_data_out [pif_count[4:0]];
+                            n64_pif_out <= pif_interface_data_in [pif_count[4:0]];
                         end
                         else if (pif_count == 0) begin
                             pif_state <= idle;
@@ -206,7 +207,7 @@ module N64_interface_external(
                                 pif_interface_address <= pif_interface_address + 1'd1;   
                             end
                             pif_count <= pif_count -1;
-                            n64_pif_out <= pif_interface_data_out [pif_count[4:0]];
+                            n64_pif_out <= pif_interface_data_in [pif_count[4:0]];
                         end
                         else if (pif_count == 0) begin
                             pif_state <= idle;
