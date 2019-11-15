@@ -92,7 +92,7 @@ module N64_interface_external(
                     4'h4    : cpu_data_out <= {8{PAL_NTSC}};
                     4'h5    : cpu_data_out <= {8{N64_reset}};
                     4'h6    : cpu_data_out <= {8{pif_processing}};
-                    4'h7    : cpu_data_out <= {1'b0, pif_interface_address[8:2]};
+                    4'h7    : cpu_data_out <= {pif_interface_address[8:2]};
                     4'h8    : cpu_data_out <= {5'd0, pif_data_transfer_type};
                     4'hA    : cpu_data_out <= {8{wait_processing}};
                     default : cpu_data_out <= crap_write;
@@ -120,10 +120,10 @@ module N64_interface_external(
     
     
     // what type of operation that we are going to do
-    localparam  read_4bytes     =   2'd0;
+    localparam  write_64bytes   =   2'd0;
     localparam  read_64bytes    =   2'd1;
     localparam  write_4bytes    =   2'd2;
-    localparam  write_64bytes   =   2'd3;
+    localparam  read_4bytes     =   2'd3;
 
     always @(posedge n64_clk or negedge reset_l) begin
         if (~reset_l) begin
@@ -142,7 +142,7 @@ module N64_interface_external(
             pif_count               <= 'b0;
         end
         else begin
-            n64_pif_out         <= 1'b1;
+ 
             pif_interface_wren  <= 1'b0;
             n64_rsp_in_reg      <= n64_rsp_in;
             n64_rsp_in_reg1     <= n64_rsp_in_reg;
@@ -163,32 +163,33 @@ module N64_interface_external(
                     end
                 end
                 decode : begin
-                    pif_processing      <= 1'b1;
+                    pif_processing          <= 1'b1;
                     if (pif_data_transfer_type == write_64bytes  && ~wait_processing) begin  // write 64 bytes DMA
-                        pif_shift_data  <= 32'd0;
-                        pif_count       <= 10'd0;
-                        pif_state       <= write_ark;
+                        pif_shift_data      <= 32'd0;
+                        pif_count           <= 10'd0;
+                        pif_state           <= write_ark;
                     end
                     if (pif_data_transfer_type == write_4bytes) begin   // write word we will allow 4Bytes to be read
-                        pif_shift_data  <= 32'd0;
-                        pif_count       <= 10'd0;
-                        pif_state       <= write_ark; 
+                        pif_shift_data      <= 32'd0;
+                        pif_count           <= 10'd0;
+                        pif_state           <= write_ark; 
                     end
                     if (pif_data_transfer_type == read_4bytes) begin    // read word we will allow 4Bytes to be read
-                        pif_shift_data  <= pif_interface_data_in;
-                        pif_count       <= 10'd32;
-                        pif_state       <= read_ack;
+                        pif_shift_data      <= 32'd0;
+                        pif_count           <= 10'd31;
+                        pif_state           <= read_ack;
                     end
                     if (pif_data_transfer_type == read_64bytes  && ~wait_processing) begin   // read 64 bytes DMA
-                        pif_shift_data  <= pif_interface_data_in;
-                        pif_count       <= 10'd512;
-                        pif_state       <= read_ack;
+                        pif_shift_data      <= 32'd0;
+                        pif_count           <= 10'd511;
+                        pif_state           <= read_ack;
                     end
                 end
                 read_ack : begin
                         pif_processing      <= 1'b1;
                         n64_pif_out         <= 1'b0;
                         pif_state           <= read_data;
+                        pif_shift_data      <= pif_interface_data_in;
                 end
                 read_data : begin
                     pif_processing      <= 1'b1;
@@ -262,6 +263,7 @@ module N64_interface_external(
                         pif_count <= 12'd11; // 11 word address shift for the type of transfer and address in ram to start from.
                         pif_processing      <= 1'b1;
                     end
+                    n64_pif_out         <= 1'b1;
                     pif_ack_sent <= 1'b0; // clear out for next time
                 end
             endcase

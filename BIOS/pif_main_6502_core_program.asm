@@ -28,6 +28,8 @@ N64_RESET_BUTTON  = $32C5
 N64_PIF_PROCESSING= $32C6
 N64_PIF_ADDRESS   = $32C7
 N64_PIF_READWRITE = $32C8
+N64_PIF_CRCHI  	  = $32C9
+N64_PIF_CRCLO  	  = $32CA
 
 PIF_ROM           = $2000
 
@@ -76,151 +78,6 @@ N64_ALLOW_PROCESSING = $32CA
 ;d3 is the 7:0   bits of the CRC being used
 
 ;f0-ff is memory transfers
-
-
-controller_testing:
-;	LDA #$FF
-;	STA $17C0
-;	LDA #$01
-;	STA $17C1
-;	LDA #$04
-;	STA $17C2
-;	LDA #$01
-;	STA $17C3
-	LDA #$FF
-	STA $17C0
-	LDA #$02
-	STA $17C1
-	LDA #$04
-	STA $17C2
-	LDA #$01
-	STA $17C3
-	LDA #$FE
-	STA $17C8
-	LDA #$01
-	sta $17ff
-
-	LDA #$00
-	STA Controller_CMD
-	LDA #$00
-	STA Controller_LOA
-	LDA #$00
-	STA Controller_HIA
-	LDA #$80
-	STA Controller_WRT
-	LDA #$45
-	STA Controller_RED
-	LDA #$80
-	STA Controller_STA
-	LDA #$00
-	STA Controller_CON
-	jsr pif_process_init
-	jmp controller_testing
-
-
-
-crc_testing:
-	LDA #$04
-	STA $3280
-	LDA #$07
-	STA $3281
-	LDA #$0A
-	STA $3282
-	LDA #$07
-	STA $3283
-	LDA #$0E
-	STA $3284
-	LDA #$05
-	STA $3285
-	LDA #$0E
-	STA $3286
-	LDA #$01
-	STA $3287
-	LDA #$0C
-	STA $3288
-	LDA #$0F
-	STA $3289
-	LDA #$08
-	STA $328A
-	LDA #$0F
-	STA $328B
-	LDA #$06
-	STA $328C
-	LDA #$03
-	STA $328D
-	LDA #$06
-	STA $328E
-	LDA #$09
-	STA $328F
-
-	LDA #$04
-	STA $3290
-	LDA #$01
-	STA $3291
-	LDA #$0A
-	STA $3292
-	LDA #$07
-	STA $3293
-	LDA #$0E
-	STA $3294
-	LDA #$05
-	STA $3295
-	LDA #$0E
-	STA $3296
-	LDA #$01
-	STA $3297
-	LDA #$0C
-	STA $3298
-	LDA #$09
-	STA $3299
-	LDA #$08
-	STA $329A
-	LDA #$05
-	STA $329B
-	LDA #$06
-	STA $329C
-	LDA #$03
-	STA $329D
-	LDA #$0C
-	STA $329E
-	LDA #$09
-	STA $329F
-	;8FBB1DB876B63CEC
-
-	LDA #$8f
-	STA $17f0
-	LDA #$bb
-	STA $17F1
-	LDA #$1d
-	STA $17F2
-	LDA #$b8
-	STA $17F3
-	LDA #$9A
-	STA $17F4
-	LDA #$76
-	STA $17F5
-	LDA #$b6
-	STA $17F6
-	LDA #$3c
-	sta $17F7
-	LDA #$02
-	STA $17F8
-	LDA #$5b
-	STA $17F9
-	LDA #$ea
-	STA $17FA
-	LDA #$ed
-	STA $17FB
-	LDA #$ec
-	STA $17FC
-	LDA #$80
-	STA $17FD
-	LDA #$3a
-	STA $17FE
-	LDA #$6b
-	STA $17FF
-	jsr crcinit6105
-	jmp crc_testing
 
 ; this is the starting code for the orginal start up ready to go
 startup_init:
@@ -399,12 +256,16 @@ test_crc_challange_system:
 	sta N64_SGM
 	cpx #$02
 	BNE test_crc_change
-	jsr crcinit6105
+	JSR crcinit6105
+	LDA #$00
+	STA $E0
 
 test_crc_change:
 	cpx #$40
 	Bne test_DMA_int
 	JSR CRC_CHANGE  ; This is for changing the CRC. write the CRC in offset 0x24 of 0x17c0 to place this in the ram Temp files
+	LDA #$00
+	STA $E0
 
 test_DMA_int:
 	cpx #$08
@@ -412,28 +273,38 @@ test_DMA_int:
 	JSR pif_process_init
 	JSR INT_UP ; this will do a interupt after processing the code
 	JSR INT_DOWN
+	LDA #$00
+	STA $E0
 
 test_clear_rom:
 	CPX #$10
 	Bne test_clear_ram
 	JSR CLEARPIFROM
+	LDA #$00
+	STA $E0
 
 test_clear_ram:
 	cpx #$C0
 	BNE test_crc_update
 	JSR CLEARPIFRAM
+	LDA #$00
+	STA $E0
 
 test_crc_update:
 	cpx #$30
 	BNE test_pif_process
-
+	
 	JSR CRC_UPDATE  ; This is for a reboot of the CRC in the system
 	JSR pif_process_init
+	LDA #$00
+	STA $E0
 
 test_pif_process:
 	cpx #$01
 	BNE clear_process
 	JSR pif_process_init
+	LDA #$00
+	STA $E0
 
 clear_process:
 	LDA $00
@@ -474,21 +345,21 @@ crcinit6105
 	ldy #$00 ; here is the key we start with
 	lda #$00  ; Here is the start of the CRC seek for the challange
 
-
+; This is the CIC 6105 challange and responce program loop for each nibble
 crc_main_loop
 	lda $17F0,Y ; we get the hig nibbles to  process
 	lsr  ; we shift 4 for the top nibble
 	lsr
 	lsr
 	lsr
-	AND #$0F ; and just to make sure that the nibble is only 4Bits
+	AND #$0F ; and just to make sure that the nibble is only 4Bits in the byte
 	sty $C9
 	jsr crc_process_nibble
 	stx $CA
 	LDX #$00
 	ldy $C9
 	lda $17F0,y
-	and #$0F
+	and #$0F ; and just to make sure that the nibble is only 4Bits in the byte
 	jsr crc_process_nibble
 	STX $CB ; Store the first nibble at zeropage F0
 	lda $CA
@@ -506,6 +377,7 @@ crc_main_loop
 	sta $17FF
 	rts
 
+; This is the CIC 6105 challange and responce program - this needs to be testing more
 ; zeropage C0 is the key
 ; zeropage C1 is the lut 0 or 1
 ; zeropage C2 is the sgn
@@ -773,8 +645,8 @@ CRC_INIT_BOOTUP_LOOP:
 	cpx #$FF
 	bne CRC_INIT_BOOTUP_LOOP
 	ldx N64_PIF_ADDRESS
-	cpx #$FC
-	bcc CRC_INIT_BOOTUP_LOOP
+	cpx #$7C
+	bne CRC_INIT_BOOTUP_LOOP
 	rts
 
 ; zeropage 00 y offset of reading on PifRam
@@ -783,24 +655,14 @@ CRC_INIT_BOOTUP_LOOP:
 ; zeropage 03 save the current Y offset and this will be the next Y on the main loop
 ; zeropage 04
 ; zeropage 05 controller processing for controller as a bit location 	#$01 -- Joy 1	#$02 -- Joy 2	#$04 -- Joy 3	#$08 -- Joy4
+
 ; zeropage 0A	Current Command
 ; zeropage 0B	Current Receive bytes
 ; zeropage 0C	Current send Bytes
-; zeropage 10 channel 1 cmd
-; zeropage 11 channel 1 send data
-; zeropage 12 channel 1 receive data
-; zeropage 13 channel 2 cmd
-; zeropage 14 channel 2 send data
-; zeropage 15 channel 2 receive data
-; zeropage 16 channel 3 cmd
-; zeropage 17 channel 3 send data
-; zeropage 18 channel 3 receive data
-; zeropage 19 channel 4 cmd
-; zeropage 1A channel 4 send data
-; zeropage 1B channel 4 receive data
-; zeropage 1C channel 5 cmd
-; zeropage 1D channel 5 send data
-; zeropage 1E channel 5 receive data
+; zeropage 0D	Current High address
+; zeropage 0E	Current Low address
+; zeropage 0F	Current start Writing data for Controller interface
+; zeropage 10	Current start Writing data for mempak interface
 
 PIF_FINISH:
 	LDA #$ff
@@ -822,21 +684,6 @@ pif_process_init:
 	STA $0A
 	STA $0B
 	STA $0C
-	sta $10
-	sta $11
-	sta $12
-	sta $13
-	sta $14
-	sta $15
-	sta $16
-	sta $17
-	sta $18
-	sta $19
-	sta $1A
-	sta $1B
-	sta $1C
-	sta $1D
-	STA $1E
 	LDA #$10
 	STA $02 ; for the channells ;-)
 	LDA #$00
@@ -879,124 +726,64 @@ CHANNEL_CHECKED:
 	BEQ JOY_EEPROM_TEST
 	JMP PIF_FINISH
 JOY_EEPROM_TEST:
-	LDA $01
-	CMP #$04
-	BNE Process_controller
-	JMP EPPROM_PROCESS	
-	
-	
-;	STY $00
-;	CPY #$ff
-;	BNE pif_finish_not
-;	JSR pif_finish
-;	rts
-;pif_finish_not:
-;	ldx $17C0,Y
-;	CPX #$fd
-;	bne test_1_finished
-;	JSR pif_finish
-;	jmp test_pif_next_address
-;test_1_finished:
-;	CPX #$FE
-;	bne test_2_finished
-;	JSR pif_finish
-;	jmp test_pif_next_address
-;test_2_finished:
-;	CPX #$00
-;	bne test_channel_check
-;	JSR add_channel
-;	LDY $00
-;	LDX $17C0,Y
-;	jmp test_pif_next_address
-;test_channel_check:
-;	CPX #$ff
-;	BNE test_pif_next_address
-;	LDY $00
-;	INY
-;	LDA $17C0,Y
-;	sta $0A
-;	INY
-;	LDA $17C0,Y
-;	STA $0B
-;	INY
-;	LDA $17C0,Y
-;	STA $0C
-;	STY $00 ; Store the offset for calculation
-;	JSR Process_controller
-;	LDA $0B
-;	ADC $0C
-;	ADC $00
-;	STA $00	; this is adding to the next offset
-;	DEC $00
-;	LDY $02 ; place this data in the correct channel
-;	LDA $0A
-;	STA $00,Y
-;	INY
-;	LDA $0B
-;	STA $00,Y
-;	INY
-;	LDA $0C
-;	STA $00,Y
-;	INY
-;	LDA $02
-;	ADC #$03
-;	STY $02
-;	inc $01
-;test_pif_next_address:
-;	ldy $00
-;	JMP pif_looping
-
-Process_controller
-
-	JMP PIF_START_LOOP ; this is to test the pif decoding process
-	ldx #$00
 	INY
-	LDA ($02,X)
-	CMP #$00
+	LDA $17C0,y
+	STA $0A	; THE COMMAND THAT NEEDS TO BE PROCESSED
+	INY
+	LDA $17C0,y
+	STA $0B	; THE AMOUNT OF DATA THAT THE N64 SENDS
+	INY
+	LDA $17C0,y
+	STA $0C ; THE AMOUNT OF DATA THAT THE N64 IS TO RECEIVE
+	INY
+	sty $0F
+	LDA $17C0,y
+	STA $0D ; Get the High address
+	INY
+	LDA $17C0,y
+	STA $0E ; Get the Low address
+	iny
+	sty $10
+	LDA $0B
+	ADC $0C
+	ADC $00
+	ADC #$02
+	STA $00 ; THIS STORES THE NEXT COMMAND TO READ
+	LDA $01 ; WE CHECK THE CHANNEL SELECTION
+	CMP #$04
+	BNE CONTROLLER_PROCESSER
+	JMP EPPROM_PROCESS	
+
+
+CONTROLLER_PROCESSER
+	LDX $0A
+	CPX #$00
 	BNE Test_read_buttons
 	JMP Controller_status
 Test_read_buttons:
-	LDX $02
-	CMP #$01
+	CPX #$01
 	BNE Test_read_mempak
 	JMP Controller_read_buttons
 Test_read_mempak:
-	LDX $02
 	CPX #$02
 	BNE Test_Controller_write_mempak
 	JMP Controller_read_buttons
 Test_Controller_write_mempak:
-	LDX $02
 	CPX #$03
 	BNE Test_Controller_reset_command
 	JMP Controller_write_mempak
 Test_Controller_reset_command:
-	LDX $02
-	CPX #$04
+	CPX #$FF
 	BNE Test_Controller_finish_processing
 	JMP Controller_reset_cmd
 Test_Controller_finish_processing:
-	;need to check what address is the next channel
-	LDA #$10 ; We increase the channel for controllers
-	ADC $02
-	sta $02
+	INC $01 ; We increase the channel size
 	JMP PIF_START_LOOP
 
 
-
-
-	;Controller_CMD    = $32A0
-	;Controller_LOA    = $32A1
-	;Controller_HIA    = $32A2
-	;Controller_WRT    = $32A3
-	;Controller_RED    = $32A4
-	;Controller_STA    = $32A5
-	;Controller_CON    = $32A6
-
 Controller_status:
-	RTS
 	ldy #$00
-	LDA $00
+	LDA $0A
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
@@ -1004,57 +791,64 @@ Controller_status:
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
-	jsr Controller_update_channel_access
 	JMP Test_Controller_finish_processing
 
 
 Controller_read_buttons:
-	RTS
+	
 	ldy #$00
-	LDA $01
+	LDA $0A
 	STA Controller_CMD
 	LDA #$00
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
-	jsr Controller_update_channel_access
 	JMP Test_Controller_finish_processing
 
 Controller_read_mempak:
-	RTS
+	
 	ldy #$00
-	LDA $02
+	LDA $0A
 	STA Controller_CMD
-	LDA #$00
+	LDA $0D
+	STA Controller_HIA
+	LDA $0E
 	STA Controller_LOA
-	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	jsr Controller_write_fifo
 	JSR Controller_wait_completed
 	jsr Controller_read_fifo
-	jsr Controller_update_channel_access
 	JMP Test_Controller_finish_processing
 
 
 Controller_write_mempak:
-	RTS
+	
 	ldy #$00
-	LDA $03
+	LDA $0A
 	STA Controller_CMD
-	LDA #$00
+	LDA $0D
+	STA Controller_HIA
+	LDA $0E
 	STA Controller_LOA
-	sta Controller_HIA
+	JSR Controller_write_fifo
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
-	jsr Controller_read_fifo
-	jsr Controller_update_channel_access
+	LDA $00
+	ADC $10
+	ADC $0C
+	TAY
+	LDA N64_PIF_CRCHI
+	STA $17C0,y
+	INY
+	LDA N64_PIF_CRCLO
+	STA $17C0,y 
 	JMP PIF_FINISH
 
 
 Controller_reset_cmd:
-	RTS
+
 	ldy #$00
-	LDA $ff
+	LDA $0A
 	STA Controller_CMD
 	LDA #$00
 	STA Controller_LOA
@@ -1062,63 +856,83 @@ Controller_reset_cmd:
 	sta Controller_HIA
 	JSR Send_conntroller_start_cmd
 	JSR Controller_wait_completed
-	jsr Controller_update_channel_access
 	JMP PIF_FINISH
 
 ; here are all the commands to the controller_system
 Send_conntroller_start_cmd:
-	LDX $02
-	CPX $01
+	LDX $01
+	CPX #$00
 	bne test_joy2
 	LDA #$01
 test_joy2:
-	CPX $02
+	CPX #$01
 	bne test_joy3
 	LDA #$02
 test_joy3:
-	CPX $03
+	CPX #$02
 	bne test_joy4
 	LDA #$04
 test_joy4:
+	CPX #$03
+	bne test_joy_completed
 	LDA #$08
-	STA $05
+test_joy_completed
+	STA $05	
 	sta Controller_CON
 	rts
 
 Controller_wait_completed:
 	LDX Controller_STA
-	CPX #$7F
+	CPX #$80
 	BCS Controller_wait_completed
 	RTS
 
 Controller_read_fifo:
-	LDY #$02
-	LDA $02,Y
-	TAX
+	LDY $0F
+	ldx $0B
 Controller_read_fifo_loop:
 	LDA Controller_RED
-	sta ($00,X)
-	dex
+	STA $17C0,Y
+	DEX
+	iny
 	cpx #$00
 	bne Controller_read_fifo_loop
 	RTS
 
 Controller_write_fifo:
-
+	LDY $10
+	LDX $0C
+Controller_write_fifo_loop	
+	LDA $17C0,Y
+	STA Controller_RED
+	DEX
+	iny
+	cpx #$00
+	bne Controller_write_fifo_loop
 	RTS
 
-
-Controller_update_channel_access:
-
-	RTS
-
-
-
-
-;controller_init:
- ; lda $17C0,Y
-;  sta
 
 EPPROM_PROCESS:
+	ldy #$00
+	LDA $0A
+	STA EPROM_CMD
+	LDA $0D
+	STA EPROM_HIA
+	LDA $0E
+	STA EPROM_LOA
+	JSR EPPROM_START_CMD
+	JSR EPPROM_COMPLETED
+	JSR EEPROM_READ_DATA
+	JSR EEPROM_WRITE_DATA
+	JMP PIF_FINISH
 
-	JMP PIF_START_LOOP
+EPPROM_START_CMD:
+	RTS
+EPPROM_COMPLETED:
+	RTS
+
+EEPROM_READ_DATA:
+	RTS
+
+EEPROM_WRITE_DATA:
+	RTS

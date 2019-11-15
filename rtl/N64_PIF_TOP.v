@@ -20,6 +20,7 @@ module N64_PIF_TOP(
     output NMI,
     output INT2,
     input PAL_NTSC,
+    input N64_reset,
     input clk,
     input reset_l
     );
@@ -337,6 +338,7 @@ module N64_PIF_TOP(
     .NMI                    (NMI),
     .INT2                   (INT2),
     .PAL_NTSC               (PAL_NTSC),
+    .N64_reset              (reset_button),
 
     .pif_interface_address  (pif_interface_address),
     .pif_interface_wren     (pif_interface_wren),
