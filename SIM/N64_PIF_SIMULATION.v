@@ -99,6 +99,8 @@ module N64_PIF_SIMULATION(
     .NMI        (NMI),
     .INT2       (INT2),
     .PAL_NTSC   (PAL_NTSC),
+        .cold_reset             (cold_reset),
+    .clock_enable           (clock_enable),
     .clk        (clk),
     .reset_l    (reset_l)
     );

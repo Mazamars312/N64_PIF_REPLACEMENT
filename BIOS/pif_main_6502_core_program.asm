@@ -1,3 +1,9 @@
+; THis is the PIF controller for a 6502 cpu to be installed in a N64
+; Created By Murray Aickin
+; email: Murray.aickin@boomweb.co.nz
+; 
+
+
 	*= $F000
 
 CRCrom_LUT0	  = $3280
@@ -28,8 +34,7 @@ N64_RESET_BUTTON  = $32C5
 N64_PIF_PROCESSING= $32C6
 N64_PIF_ADDRESS   = $32C7
 N64_PIF_READWRITE = $32C8
-N64_PIF_CRCHI  	  = $32C9
-N64_PIF_CRCLO  	  = $32CA
+
 
 PIF_ROM           = $2000
 
