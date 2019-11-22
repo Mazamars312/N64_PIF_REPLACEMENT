@@ -28,8 +28,6 @@ N64_RESET_BUTTON  = $32C5
 N64_PIF_PROCESSING= $32C6
 N64_PIF_ADDRESS   = $32C7
 N64_PIF_READWRITE = $32C8
-N64_PIF_CRCHI  	  = $32C9
-N64_PIF_CRCLO  	  = $32CA
 
 PIF_ROM           = $2000
 
@@ -293,7 +291,7 @@ test_clear_ram:
 test_crc_update:
 	cpx #$30
 	BNE test_pif_process
-	
+
 	JSR CRC_UPDATE  ; This is for a reboot of the CRC in the system
 	JSR pif_process_init
 	LDA #$00
@@ -328,7 +326,7 @@ clear_process:
 ; zeropage C9 is the offset base address of the CRC Rom
 
 
-crcinit6105
+crcinit6105:
 	lda #$0B
 	sta $c0
 	lda #$00
@@ -346,7 +344,7 @@ crcinit6105
 	lda #$00  ; Here is the start of the CRC seek for the challange
 
 ; This is the CIC 6105 challange and responce program loop for each nibble
-crc_main_loop
+crc_main_loop:
 	lda $17F0,Y ; we get the hig nibbles to  process
 	lsr  ; we shift 4 for the top nibble
 	lsr
@@ -388,31 +386,31 @@ crc_main_loop
 ; zeropage c7/c8 the address to be read from the CRC Rom
 ; zeropage FA/FB is the base address of the CRC Rom
 
-crc_process_nibble ; from here we will use the C0 zeropage locations
+crc_process_nibble: ; from here we will use the C0 zeropage locations
 	sta $C6
 	lda $C0
 	adc #$04
 	sta $C5
 	ldx #$00
-responce_multi_5 ; responce = (key +5) * Challange
+responce_multi_5: ; responce = (key +5) * Challange
 	INX
 	CPX $C6
 	bcs responce_zero
 	ADC $C5
 	jmp responce_multi_5
-responce_zero
+responce_zero:
 	and #$07 ; responce & 0x07
 	sta $C5
 	; key = lut [responce]
 	ldx $C1
 	cpx #$01
 	beq lut1_key
-lut0_key
+lut0_key:
 	ldx $C5
 	LDA $3280,x
 	sta $C0
 	jmp sgn_key
-lut1_key
+lut1_key:
 	ldx $C5
 	LDA $3290,x
 	sta $C0
@@ -449,7 +447,7 @@ modulus:
 	SBC $00
 	bcs modulus
 	adc $01
-mobulus_zero
+mobulus_zero:
 	TAX
 	cpx #$1
 	bne sign_neg_1
@@ -645,7 +643,7 @@ CRC_INIT_BOOTUP_LOOP:
 	cpx #$FF
 	bne CRC_INIT_BOOTUP_LOOP
 	ldx N64_PIF_ADDRESS
-	cpx #$7C
+	cpx #$7E
 	bne CRC_INIT_BOOTUP_LOOP
 	rts
 
@@ -697,7 +695,7 @@ PIF_START_LOOP:	; THIS IS TO CHECK THAT WE HAVE REACHED THE END THE OF THE PIF R
 	CMP #$06
 	BCS PIF_MAIN_LOOP
 	JMP PIF_FINISH
-PIF_MAIN_LOOP: 
+PIF_MAIN_LOOP:
 	LDA $17C0,Y
 	TAX
 	CPX #$FE
@@ -706,21 +704,21 @@ PIF_MAIN_LOOP:
 FINISHED_PIF_PROCESS:
 	CPX #$00
 	BNE CHANNEL_CHECKED ; CHECK FOR INCREASE OF CHANNEL PROCESSING
-CHANNEL_INCREASE:	
+CHANNEL_INCREASE:
 	INC $00
 	INC $01
 	INY
 	CPY #$06
 	BNE CHANNEL_NOT_END
 	JMP PIF_FINISH
-CHANNEL_NOT_END:	
+CHANNEL_NOT_END:
 	LDA $02
 	ADC #$03
 	STA $02
 	LDA $17C0,Y
 	TAX
 	CPX #$00
-	BEQ CHANNEL_INCREASE	
+	BEQ CHANNEL_INCREASE
 CHANNEL_CHECKED:
 	CPX #$FF
 	BEQ JOY_EEPROM_TEST
@@ -752,10 +750,10 @@ JOY_EEPROM_TEST:
 	LDA $01 ; WE CHECK THE CHANNEL SELECTION
 	CMP #$04
 	BNE CONTROLLER_PROCESSER
-	JMP EPPROM_PROCESS	
+	JMP EPPROM_PROCESS
 
 
-CONTROLLER_PROCESSER
+CONTROLLER_PROCESSER:
 	LDX $0A
 	CPX #$00
 	BNE Test_read_buttons
@@ -795,7 +793,7 @@ Controller_status:
 
 
 Controller_read_buttons:
-	
+
 	ldy #$00
 	LDA $0A
 	STA Controller_CMD
@@ -806,7 +804,7 @@ Controller_read_buttons:
 	JMP Test_Controller_finish_processing
 
 Controller_read_mempak:
-	
+
 	ldy #$00
 	LDA $0A
 	STA Controller_CMD
@@ -820,9 +818,8 @@ Controller_read_mempak:
 	jsr Controller_read_fifo
 	JMP Test_Controller_finish_processing
 
-
 Controller_write_mempak:
-	
+
 	ldy #$00
 	LDA $0A
 	STA Controller_CMD
@@ -841,7 +838,7 @@ Controller_write_mempak:
 	STA $17C0,y
 	INY
 	LDA N64_PIF_CRCLO
-	STA $17C0,y 
+	STA $17C0,y
 	JMP PIF_FINISH
 
 
@@ -876,8 +873,8 @@ test_joy4:
 	CPX #$03
 	bne test_joy_completed
 	LDA #$08
-test_joy_completed
-	STA $05	
+test_joy_completed:
+	STA $05
 	sta Controller_CON
 	rts
 
@@ -902,7 +899,7 @@ Controller_read_fifo_loop:
 Controller_write_fifo:
 	LDY $10
 	LDX $0C
-Controller_write_fifo_loop	
+Controller_write_fifo_loop:
 	LDA $17C0,Y
 	STA Controller_RED
 	DEX
