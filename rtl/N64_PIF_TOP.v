@@ -19,6 +19,8 @@ module N64_PIF_TOP(
     input reset_button,
     output NMI,
     output INT2,
+    output clock_enable,
+    output cold_reset,
     input PAL_NTSC,
     input N64_reset,
     input clk,
@@ -236,20 +238,6 @@ module N64_PIF_TOP(
         .RDY        (cpu_ready) 
     );
     
-//    assign cs = 1'b1;
-
-//    m6502 m6502(
-//             .clk           (clk),
-//             .reset_n       (reset_l),
-
-//             .cs            (cs),
-//             .wr            (cpu_write),
-//             .address       (address),
-//             .mem_ready     (cpu_ready),
-//             .data_valid    (cpu_ready),
-//             .read_data     (cpu_data_in),
-//             .write_data    (cpu_data_out)
-//            );
     
     N64_controller_top N64_controller_top(
         .clk          (clk),
@@ -337,8 +325,10 @@ module N64_PIF_TOP(
     
     .NMI                    (NMI),
     .INT2                   (INT2),
+    .cold_reset             (cold_reset),
+    .clock_enable           (clock_enable),
     .PAL_NTSC               (PAL_NTSC),
-    .N64_reset              (reset_button),
+    .N64_reset_button       (reset_button),
 
     .pif_interface_address  (pif_interface_address),
     .pif_interface_wren     (pif_interface_wren),

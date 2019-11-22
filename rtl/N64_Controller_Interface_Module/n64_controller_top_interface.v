@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // --------------------------------------------------------------------
-// Copyright (c) 2017 by FPGALOVER 
+// Copyright (c) 2017 by FPGALOVER
 // --------------------------------------------------------------------
 //                     web: http://www.fpgalover.com
 //                     email: admin@fpgalover.com or hbecerra@ece.ubc.ca
@@ -34,13 +34,14 @@
 /**************************************************************
 
     address lines
-        0x0000 - cmd
-        0x0001 - high address
-        0x0010 - Low address/xor CRC[4:0]
-        0x0011 - Controller access and ready/waiting status 
-        0x0100 - Controller controll signals
-        0x0101 - Read fifo (8-bits)
-        0x0110 - Write fifo (8-bits)
+        0x00 - cmd
+        0x01 - high address
+        0x02 - Low address/xor CRC[4:0]
+        0x03 - Controller access and ready/waiting status
+        0x04 - Controller controll signals
+        0x05 - Read fifo (8-bits)
+        0x06 - Write fifo (8-bits)
+				0x07 - CRC Low/high
 
     Commands
         0x00 - Status of controller
@@ -48,7 +49,7 @@
         0x02 - Read Ram
         0x03 - Write ram
         0xff - reset controller
-        
+
 **************************************************************/
 
 module N64_controller_top(
@@ -61,7 +62,7 @@ module N64_controller_top(
 		inout joy2,
 		inout joy3,
 		inout joy4,
-		
+
 		input [3:0]       address,
 		input [7:0]       data_in_bus,
 		input             write,
@@ -86,7 +87,7 @@ localparam THREEuSECONDS = 32'd150;
 localparam ONEuSECONDS = 32'd50;
 localparam HUNDRED_MS = 32'd400000;
 localparam FIVEuSECONDS = 32'd400;
-  
+
 
 reg [7:0]   state=IDLE_FSM;
 reg [31:0]  counter_delay =32'd0;
@@ -112,6 +113,7 @@ reg         start;
 reg [7:0]   cmd_to_controller;
 reg [7:0]   address_high;
 reg [7:0]   address_low;
+reg [7:0] 	CRC_HIGH, CRC_LOW;
 
 reg [7:0]   fifo_buffer_read    [32:0];
 reg [7:0]   fifo_buffer_read_write_data;
@@ -141,24 +143,24 @@ reg         joy2_enable;
 reg         joy3_enable;
 reg         joy4_enable;
 
-reg [7:0]  controller_input;   
+reg [7:0]  controller_input;
 
 wire [7:0] fifo_buffer_write_controller;
 
 /*****************************************************************************************
 
-    This is the Interface from the CPU and will interface to the regs that setup the 
+    This is the Interface from the CPU and will interface to the regs that setup the
     command, address for MEM access (Last 5bits are the CRC) and the data to be sent.
-    
+
         address lines
         0x0000 - cmd [7:0]
-        0x0001 - high address[15:8] 
+        0x0001 - high address[15:8]
         0x0010 - Low address[7:5]/CRC[4:0]
-        0x0011 - Controller status 
+        0x0011 - Controller status
         0x0100 - Controller control
         0x0101 - Read fifo (8-bits)
         0x0110 - Write fifo (8-bits)
-        
+
       Controller Status bits - This is read only
         [7] - Ready
         [6] - Processing a FIFO/Controller accessing
@@ -167,10 +169,10 @@ wire [7:0] fifo_buffer_write_controller;
         [3] - Joystick port 4 is being access/processed
         [2] - Joystick port 3 is being access/processed
         [1] - Joystick port 2 is being access/processed
-        [0] - Joystick port 1 is being access/processed  
-        
-        
-      Controller Control bits - This is write only - Once writen to the controller will start running. 
+        [0] - Joystick port 1 is being access/processed
+
+
+      Controller Control bits - This is write only - Once writen to the controller will start running.
       Try to only write one bit at a time.
 
         [5] - the Write FIFO is to be emptied
@@ -210,25 +212,25 @@ always @(posedge clk or negedge reset_l) begin
         empty_write_fifo <= 'b0;
         if (write && ce) begin
             case (address)
-                3'b0000 : begin
+                4'h00 : begin
                     cmd_to_controller <= data_in_bus;
                 end
-                3'b0001 : begin
+                4'h01 : begin
                     address_high <= data_in_bus;
                 end
-                3'b0010 : begin
+                4'h02 : begin
                     address_low <= data_in_bus;
                 end
 
-                3'b0100 : begin
+                4'h04 : begin
                     {empty_write_fifo,empty_read_fifo,joy4_enable,joy3_enable,joy2_enable,joy1_enable} <= data_in_bus[5:0];
-                    if (|{data_in_bus[3],data_in_bus[2],data_in_bus[1],data_in_bus[0]}) begin 
+                    if (|{data_in_bus[3],data_in_bus[2],data_in_bus[1],data_in_bus[0]}) begin
 
                         ready <= 1'b0;
                     end
                 end
 
-                3'b0110 : begin
+                4'h06 : begin
                     fifo_buffer_write_write_data <= data_in_bus;
                     fifo_buffer_write_write <= 1'b1;
                 end
@@ -238,30 +240,36 @@ always @(posedge clk or negedge reset_l) begin
         end
         if (~write && ce) begin
             case (address)
-                3'b0000 : begin
+                4'h00 : begin
                     data_out_bus <= cmd_to_controller;
                 end
-                3'b0001 : begin
+                4'h01 : begin
                     data_out_bus <= address_high;
                 end
-                3'b0010 : begin
+                4'h02 : begin
                     data_out_bus <= address_low;
                 end
-                3'b0011 : begin
+                4'h03 : begin
                     data_out_bus <= {ready, processing, empty_write_fifo_status, empty_read_fifo_status,
                                      joy4_enable, joy3_enable, joy2_enable, joy1_enable}; // notused on reads
-                    
+
                 end
-                3'b0101 : begin
+                4'h05 : begin
                     data_out_bus <= fifo_buffer_read_read_data;
                     fifo_buffer_read_read <= 1'b1;
                 end
+								4'h02 : begin
+                    data_out_bus <= CRC_LOW;
+                end
+								4'h02 : begin
+                    data_out_bus <= CRC_HIGH;
+                end
                 default : begin
-    
+
                 end
             endcase
         end
-        
+
         if(state == IDLE_FSM && processing)begin
             joy4_enable <= 'b0;
             joy3_enable <= 'b0;
@@ -292,7 +300,7 @@ reg       read_write; //1 == read;
         0xff - reset controller
 
 *********************************************************/
-
+reg crc_receive;
 always @* begin
     case (cmd_to_controller)
         8'h00 : begin
@@ -301,6 +309,7 @@ always @* begin
             counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
+						crc_receive <= 0;
         end
         8'h01 : begin
             counter_receive <= 9'd33;
@@ -308,6 +317,7 @@ always @* begin
             counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
+						crc_receive <= 0;
         end
         8'h02 : begin
             counter_receive <= 9'd265;
@@ -315,13 +325,15 @@ always @* begin
             counter_command <= 4'd8;
             address_send <= 1;
             read_write <= 1;
+						crc_receive <= 0;
         end
         8'h03 : begin
-            counter_receive <= 9'd0;
+            counter_receive <= 9'd16; //crc check
             counter_send <= 9'd264;
             counter_command <= 4'd8;
             address_send <= 1;
             read_write <= 0;
+						crc_receive <= 1;
         end
         8'hff : begin
             counter_receive <= 9'd0;
@@ -329,6 +341,7 @@ always @* begin
             counter_command <= 4'd8;
             address_send <= 0;
             read_write <= 1;
+						crc_receive <= 0;
         end
     endcase
 end
@@ -341,7 +354,7 @@ assign joy1 = joy1_enable ? (oe ? data_out : 1'bz) : 1'b1;
 assign joy2 = joy2_enable ? (oe ? data_out : 1'bz) : 1'b1;
 assign joy3 = joy3_enable ? (oe ? data_out : 1'bz) : 1'b1;
 assign joy4 = joy4_enable ? (oe ? data_out : 1'bz) : 1'b1;
- 
+
 always@(posedge clk)
 begin
     casez ({joy4_enable, joy3_enable, joy2_enable,joy1_enable})
@@ -379,8 +392,9 @@ localparam sendcommand      =	3'd1;
 localparam sendaddress      =	3'd2;
 localparam senddata         =	3'd3;
 localparam receivedata      =	3'd4;
-localparam stopbits          =	3'd5;
-localparam stopbitr          =	3'd6;
+localparam stopbits         =	3'd5;
+localparam stopbitr         =	3'd6;
+localparam CRC_receive			= 3'd7;
 
 
 always @(posedge clk or negedge reset_l) begin
@@ -427,13 +441,13 @@ always @* begin
             end
         end
         stopbitr : begin
-            if (sync_data_not) FSM_Main_c <= idle_con; //&& counter_polling == 'b0
+            if (sync_data_not) FSM_Main_c <= ((crc_receive)? receivedata : idle_con); //&& counter_polling == 'b0
             else FSM_Main_c <= stopbitr;
         end
         sendaddress : begin
-            if (counter_send_address_count == 6'd0 && (state == SENT_COMMAND)) begin 
-                if (read_write == 1) FSM_Main_c <= stopbits; 
-                else FSM_Main_c <= senddata; 
+            if (counter_send_address_count == 6'd0 && (state == SENT_COMMAND)) begin
+                if (read_write == 1) FSM_Main_c <= stopbits;
+                else FSM_Main_c <= senddata;
             end
             else FSM_Main_c <= sendaddress;
         end
@@ -537,7 +551,7 @@ end
 always @* begin
     case (FSM_Main)
         senddata : begin
-           if (counter_send_address_count[2:0] == 3'd0)fifo_write_next_c <= 1'b1;
+           if (counter_send_address_count[2:0] == 3'd0) fifo_write_next_c <= 1'b1;
            else fifo_write_next_c <= 1'b0;
         end
         default : begin
@@ -711,7 +725,7 @@ begin
 	end
 end
 
-// this is the input system that places what the data should be on the 8 bit bus 
+// this is the input system that places what the data should be on the 8 bit bus
 
 always@(posedge clk)
 begin
@@ -734,7 +748,7 @@ begin
 end
 
 // This is the counter for the output data. We will change this so each time the process starts
-// it updates the counter polling to the higher number and then each 8 counts it gets updates the FIFO 
+// it updates the counter polling to the higher number and then each 8 counts it gets updates the FIFO
 // we might make a reg that can be accessed by the main FSM
 
 //wire idle_change = (state==IDLE_FSM);
@@ -759,7 +773,7 @@ wire [3:0] sending_data_location = counter_polling;
 always@(posedge clk)
 begin
 	case(state[7:0])
-	IDLE_FSM	:begin	 	
+	IDLE_FSM	:begin
 					counter_delay[31:0]<=0;
 					state[7:0]<=IDLE_FSM;
 					if(start)
@@ -767,7 +781,7 @@ begin
 						state[7:0]<=POLL_FSM;
 					end
 				 end
-	POLL_FSM	:begin	 
+	POLL_FSM	:begin
 					counter_delay[31:0]<=0;// otherwise go to get the data
 					state[7:0]<=GET_FSM;
 					if(controller_active)
@@ -781,7 +795,7 @@ begin
 						end
 					end
 				 end
-	SEND0_FSM1	:begin// send a 0  
+	SEND0_FSM1	:begin// send a 0
 					state[7:0]<=SEND0_FSM1;
 					counter_delay[31:0]<=counter_delay[31:0]-1'b1;
 					if(counter_delay[31:0]==32'd0)
@@ -818,10 +832,10 @@ begin
     SENT_COMMAND : begin
                     state[7:0]<=POLL_FSM;
 					counter_delay[31:0]<='b0;
-					
-					
+
+
                 end
-	GET_FSM 	:begin	 
+	GET_FSM 	:begin
 					state[7:0]<=GET_FSM;
 					counter_delay[31:0]<=HUNDRED_MS;// DELAY AFTER POLLING AND GETTING DATA
 				   if(FSM_Main == idle_con)// wait untilt there are 33 pulses coming from the N64 controller
@@ -841,7 +855,7 @@ begin
 					state[7:0]<=IDLE_FSM;
 					counter_delay[31:0]<=32'd0;
 				 end
-	endcase 
+	endcase
 end
 
 async_trap_and_reset async_trap_and_reset_inst
@@ -887,13 +901,13 @@ n64_controller_fifo #(
 n64_controller_fifo_write(
     .clk            (clk),
     .rst_n          (reset_l),
-     // for the CPU   
+     // for the CPU
     .sclr           (empty_write_fifo),
     .wrreq          (fifo_buffer_write_write),
     .empty          (empty_write_fifo_status),
     .data           (fifo_buffer_write_write_data),
     // for the controller
-    .rdreq          (fifo_write_next),   //input    
+    .rdreq          (fifo_write_next),   //input
     .q              (fifo_buffer_write_controller)
 );
 
@@ -962,11 +976,11 @@ module n64_controller_fifo(
     input                       clk,
     input                       rst_n,
     input                       sclr,
-    
+
     input                       rdreq,
     input                       wrreq,
     input       [width-1:0]     data,
-    
+
     output                      empty,
     output reg                  full,
     output      [width-1:0]     q,

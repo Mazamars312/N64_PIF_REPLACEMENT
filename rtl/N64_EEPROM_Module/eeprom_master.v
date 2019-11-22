@@ -6,17 +6,18 @@ http://faculty.lasierra.edu/~ehwang/digitaldesign/public/projects/DE2/I2C/I2C.pd
 
 module i2c_master(
 		input wire clk,
-		input wire reset,
+		input wire reset_l,
 		input wire start,
 
 		input wire [7:0] nbytes_in,
-		input wire [6:0] addr_in,
+		input wire [6:0] address_high,
+		input wire [7:0] address_low,
 		input wire rw_in,
 		input wire [7:0] write_data,
 		output reg [7:0] read_data,
 		output reg tx_data_req,
 		output reg rx_data_ready,
-
+        output reg completed,
 		inout wire sda_w,
 		output wire scl
 	);
@@ -24,7 +25,8 @@ module i2c_master(
 	//state parameters
 	localparam STATE_IDLE = 0;
 	localparam STATE_START = 1;
-	localparam STATE_ADDR = 2;
+	localparam STATE_CMD_ADDR = 2;
+	localparam STATE_LOCAL_ADDR = 2;
 	localparam STATE_RW = 3;
 	localparam STATE_ACK = 4;
 	localparam STATE_READ_ACK = 5;
@@ -35,11 +37,14 @@ module i2c_master(
 	localparam READ = 1;
 	localparam WRITE = 0;
 	localparam ACK = 0;
+	
+	reg sent_address;
 
 	reg [5:0] state;
 	reg [7:0] bit_count;	//bit counter
 	//local buffers
-	reg [6:0] addr;
+	reg [6:0] addr_dev;
+	reg [7:0] addr_base;
 	reg [7:0] data;
 	reg [7:0] nbytes;
 	reg rw;
@@ -59,8 +64,8 @@ module i2c_master(
 	//  ready to respond on the next posedge below
 	assign scl = (scl_en == 0) ? 1'b1 : ~clk;
 
-	always @(negedge clk) begin
-		if (reset == 1) begin
+	always @(negedge clk or negedge reset_l) begin
+		if (~reset_l) begin
 			scl_en <= 0;
 
 		end else begin
@@ -84,17 +89,20 @@ module i2c_master(
 
 
 	//FSM
-	always @(posedge clk) begin
-		if (reset == 1) begin
+	always @(posedge clk or negedge reset_l) begin
+		if (~reset_l) begin
 			state <= STATE_IDLE;
 			sda <= 1;
 			bit_count <= 8'd0;
-			addr <= 0;
+			addr_dev <= 0;
 			data <= 0;
 			nbytes <= 0;
 			rw <= 0;
 			tx_data_req <= 0;
 			rx_data_ready <= 0;
+			sent_address <= 0;
+			addr_base <= 'b0;
+			completed <= 'b1;
 		end	//if reset
 
 		else begin
@@ -102,42 +110,43 @@ module i2c_master(
 
 				STATE_IDLE: begin	//idle
 					sda <= 1;
+					completed <= 'b1;
 					if (start) begin
 						state <= STATE_START;
+						completed <= 'b0;
 					end //if start
 				end
 
-
 				STATE_START: begin //start
-					state <= STATE_ADDR;
+					state <= STATE_CMD_ADDR;
 					sda <= 0;	//send start condition
 					//latch in all the values
-					addr <= addr_in;
+					addr_dev <= address_high;
+					addr_base <= address_low;
 					nbytes <= nbytes_in;
 					rw <= rw_in;
 					if (rw_in == WRITE) begin
 						tx_data_req <= 1;  //request the first byte of data
 					end
+					sent_address <= 1;
 					bit_count <= 6;	//addr is only 7 bits long, not 8
 				end	//state_start
 
-
-				STATE_ADDR: begin //send slave address
-					sda <= addr[bit_count];
+				STATE_CMD_ADDR: begin //send slave address
+					sda <= addr_dev[bit_count];
 					if (bit_count == 0) begin
 						state <= STATE_RW;
+						bit_count <= 7;
 					end
 					else begin
 						bit_count <= bit_count - 1'b1;
 					end
 				end	//state_addr
-
-
+				
 				STATE_RW: begin //send R/W bit
 					sda <= rw;
 					state <= STATE_ACK;
 				end	//state_rw
-
 
 				STATE_ACK: begin
 					//release the sda line and await ack
@@ -149,7 +158,13 @@ module i2c_master(
 					tx_data_req <= 0; //time is up. if the data isn't in tx by now it is too late!
 
 					//now we have to decide what to do next.
-					if (nbytes == 0) begin
+					if (sent_address) begin
+                            // Send address reg
+							bit_count <= 7;	//8 data bits
+							state <= STATE_LOCAL_ADDR;
+					
+					end
+					else if (nbytes == 0) begin
 						//there is no data left to read/write
 						if (start == 1) begin
 							//repeat start condition
@@ -160,7 +175,6 @@ module i2c_master(
 							sda <= 1; //idle state is high
 							state <= STATE_STOP;
 						end	//if start == 1
-
 					end else begin
 						//we have more data to read/write
 						if (rw == WRITE) begin
@@ -173,11 +187,18 @@ module i2c_master(
 							state <= STATE_RX_DATA;
 						end //if rw_buf == WRITE
 					end //if nbytes_buf == 0
-
-
 				end //state_ack
 
-
+                STATE_LOCAL_ADDR: begin //send slave address
+					sda <= addr_base[bit_count];
+					sent_address <= 0;
+					if (bit_count == 0) begin
+						state <= STATE_ACK;
+					end
+					else begin
+						bit_count <= bit_count - 1'b1;
+					end
+				end	//state_addr
 
 				STATE_TX_DATA: begin
 					sda <= data[bit_count];
@@ -194,8 +215,6 @@ module i2c_master(
 					end
 				end	//state_tx_data
 
-
-
 				STATE_RX_DATA: begin
 					data[bit_count] <= sda_w;
 					if (bit_count == 0) begin
@@ -211,8 +230,6 @@ module i2c_master(
 						rx_data_ready <= 0;
 					end
 				end	//state_rx_data
-
-
 
 				STATE_STOP: begin
 					sda <= 1;

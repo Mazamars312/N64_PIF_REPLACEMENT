@@ -23,9 +23,11 @@ module N64_interface_external(
     
     output reg          NMI,
     output reg          INT2,
+    output reg          cold_reset,
+    output reg          clock_enable,
     
     input               PAL_NTSC,
-    input               N64_reset,
+    input               N64_reset_button,
 
     output reg [8:0]    pif_interface_address,
     output reg          pif_interface_wren,
@@ -64,6 +66,8 @@ module N64_interface_external(
             pif_page <= 'b0;
             crap_write <= 'b0;
             wait_processing <= 'b0;
+            clock_enable <= 1'b1;
+            cold_reset <= 1'b1;
         end
         else begin
             cpu_data_out <= 'b0;
@@ -75,12 +79,14 @@ module N64_interface_external(
             crap_write <= crap_write;
             if (cpu_wren) begin
                 case (cpu_address)
-                    4'h0    : NMI <= |{cpu_data_in};
-                    4'h1    : INT2 <= |{cpu_data_in};
-                    4'h2    : pif_disable <= |{cpu_data_in};
-                    4'h3    : pif_page <= cpu_data_in;
-                    4'h10   : wait_processing <= |{cpu_data_in};
-                    default : crap_write <= 8'b0;
+                    4'h0    : NMI               <= |{cpu_data_in};
+                    4'h1    : INT2              <= |{cpu_data_in};
+                    4'h2    : pif_disable       <= |{cpu_data_in};
+                    4'h3    : pif_page          <= cpu_data_in;
+                    4'hA    : wait_processing   <= |{cpu_data_in};
+                    4'hB    : cold_reset        <= |{cpu_data_in};
+                    4'hC    : clock_enable      <= |{cpu_data_in};
+                    default : crap_write        <= cpu_data_in;
                 endcase
             end
             else begin
@@ -90,11 +96,14 @@ module N64_interface_external(
                     4'h2    : cpu_data_out <= {8{pif_disable}};
                     4'h3    : cpu_data_out <= pif_page;
                     4'h4    : cpu_data_out <= {8{PAL_NTSC}};
-                    4'h5    : cpu_data_out <= {8{N64_reset}};
+                    4'h5    : cpu_data_out <= {8{N64_reset_button}};
                     4'h6    : cpu_data_out <= {8{pif_processing}};
                     4'h7    : cpu_data_out <= {pif_interface_address[8:2]};
                     4'h8    : cpu_data_out <= {5'd0, pif_data_transfer_type};
                     4'hA    : cpu_data_out <= {8{wait_processing}};
+                    4'hB    : cpu_data_out <= {8{cold_reset }};
+                    4'hC    : cpu_data_out <= {8{clock_enable }};
+                    
                     default : cpu_data_out <= crap_write;
                 endcase
             end
