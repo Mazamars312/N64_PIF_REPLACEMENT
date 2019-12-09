@@ -54,14 +54,14 @@ module N64_PIF_TOP(
                                 crc_rom_oe <= cs;//1'b1;
 //                                cpu_data_in <= crc_data_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
@@ -70,21 +70,21 @@ module N64_PIF_TOP(
                                 controller_oe <= cs;//1'b1; 
                                 controller_wr <= cpu_write; 
 //                                cpu_data_in <= n64_controller_data_out;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
                                 end
                 16'h32Bz    : begin 
-                                eeprom_oe <= cs;//1'b1; 
-                                eeprom_wr <= cpu_write; 
+//                                eeprom_oe <= cs;//1'b1; 
+//                                eeprom_wr <= cpu_write; 
 //                                cpu_data_in <= eeprom_data_out;
                                 controller_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
@@ -103,14 +103,14 @@ module N64_PIF_TOP(
                                 n64_interface_reg_wr <= cpu_write; 
 //                                cpu_data_in <= n64_interface_reg_data_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 end
@@ -119,14 +119,14 @@ module N64_PIF_TOP(
                                 ram_6502_wr <= cpu_write; 
 //                                cpu_data_in <= ram_6502_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
                                 end
@@ -135,14 +135,14 @@ module N64_PIF_TOP(
                                 pif_ram_wr <= cpu_write; 
 //                                cpu_data_in <= pif_ram_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
                                 end
@@ -150,14 +150,14 @@ module N64_PIF_TOP(
                                 pif_rom_oe <= cs;//1'b1;
 //                                cpu_data_in <= pif_rom_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 rom_6502_oe <= 1'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
@@ -166,14 +166,14 @@ module N64_PIF_TOP(
                                 rom_6502_oe <= cs;//1'b1;
 //                                cpu_data_in <= rom_6502_out;
                                 controller_oe <= 'b0;
-                                eeprom_oe <= 'b0;
+//                                eeprom_oe <= 'b0;
                                 ram_6502_oe <= 'b0;
                                 pif_ram_oe <= 'b0;
                                 crc_rom_oe <= 'b0;
                                 n64_interface_reg_oe <= 'b0;
                                 pif_rom_oe <= 'b0;
                                 controller_wr <= 'b0;
-                                eeprom_wr <= 'b0;
+//                                eeprom_wr <= 'b0;
                                 ram_6502_wr <= 'b0;
                                 pif_ram_wr <= 'b0;
                                 n64_interface_reg_wr <= 'b0;
@@ -192,10 +192,10 @@ module N64_PIF_TOP(
                                 cpu_data_in <= n64_controller_data_out;
                                 cpu_ready <= controller_valid;
                                 end
-                16'h32Bz    : begin
-                                cpu_data_in <= eeprom_data_out;
-                                cpu_ready <= 1'b1;
-                                end
+//                16'h32Bz    : begin
+//                                cpu_data_in <= eeprom_data_out;
+//                                cpu_ready <= 1'b1;
+//                                end
                 16'h32Cz    : begin
                                 cpu_data_in <= n64_interface_reg_data_out;
                                 cpu_ready <= n64_interface_reg_valid;

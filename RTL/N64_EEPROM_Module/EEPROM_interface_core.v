@@ -26,7 +26,7 @@ module EEPROM_interface_core(
 
 //		output reg [33:0]buttons=34'd0,
 //		output reg alive=1'd0,
-        output reg eprom_clk,
+        output eprom_clk,
         inout eprom_data,
 
 		input [3:0]       address,
@@ -226,13 +226,13 @@ end
    )
    FIFO36E1_read (
       // Read Data: 64-bit (each) output: Read output data
-      .DO(fifo_buffer_write_write_data),                       // 64-bit output: Data output
+      .DO(fifo_buffer_read_read_data),                       // 64-bit output: Data output
       // Status: 1-bit (each) output: Flags and other FIFO status outputs
       .EMPTY(empty_write_fifo_status),                 // 1-bit output: Empty flag
 
       // Read Control Signals: 1-bit (each) input: Read clock, enable and reset input signals
       .RDCLK(clk),                 // 1-bit input: Read clock
-      .RDEN(tx_data_req),                   // 1-bit input: Read enable
+      .RDEN(fifo_buffer_read_read),                   // 1-bit input: Read enable
       .REGCE(1'b1),                 // 1-bit input: Clock enable
       .RST(reset_l),                     // 1-bit input: Reset
       // Write Control Signals: 1-bit (each) input: Write clock and enable input signals
@@ -277,7 +277,7 @@ end
    )
    FIFO36E1_write (
       // Read Data: 64-bit (each) output: Read output data
-      .DO(fifo_buffer_write_write_data),                       // 64-bit output: Data output
+      .DO(eeprom_data_in),                       // 64-bit output: Data output
       // Status: 1-bit (each) output: Flags and other FIFO status outputs
       .EMPTY(empty_write_fifo_status),                 // 1-bit output: Empty flag
 
@@ -298,7 +298,7 @@ end
 
     i2c_master i2c_master(
 		.clk              (out_100hz),
-		.reset            (reset_l),
+		.reset_l          (reset_l),
 		.start            (eeprom_start),
 		
 		.nbytes_in        (byte_count),
